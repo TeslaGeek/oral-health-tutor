@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center vh-100">
+  <div class="d-flex flex-row justify-content-center align-items-center position-relative w-100"
+       style="transform: translateY(-8%);">
+
+    <!-- Left image -->
+    <img src="{{ url_for('static', filename='images/Tutor.png') }}"
+         class="img-fluid d-none d-md-block"
+         style="max-height: 300px; margin-right: -70px; margin-left: 20px; z-index: 0;" alt="Tutor">
+
+    <!-- Center box -->
+    <div class="text-center bg-light shadow-lg rounded p-5 mx-2"
+         style="max-width: 520px; opacity: 0.96; z-index: 1; position: relative;">
+      <h2 class="mb-3" style="font-family: 'Poppins', sans-serif;">Welcome to Oral Health Tutor</h2>
+      <p class="mb-4 text-muted" style="font-family: 'Mukta Malar', sans-serif;">
+        AI-powered virtual patients for oral health consultation practice, investigations, diagnosis, and planning.
+      </p>
+
+      <a href="{{ url_for('oral.list_cases') }}" class="btn btn-primary btn-block mb-2">
+        Start as student
+      </a>
+
+      <a href="{{ url_for('oral.admin_sessions') }}" class="btn btn-outline-primary btn-block mb-2">
+        View sessions (admin)
+      </a>
+
+      <div class="footer-text mt-4">Prototype by Intelligent Education Systems Ltd</div>
+    </div>
+
+    <!-- Right image -->
+    <img src="{{ url_for('static', filename='images/pupil.png') }}"
+         class="img-fluid d-none d-md-block"
+         style="max-height: 300px; margin-left: -140px; margin-right: 20px; z-index: 0;" alt="Pupil">
+  </div>
+</div>
+{% endblock %}

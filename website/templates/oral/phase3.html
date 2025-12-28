@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="mb-4">Phase 3 – Planning & Consent</h1>
+
+<div class="row">
+  <div class="col-lg-5" style="background-color:#f9f9f9; box-shadow:0 2px 4px rgba(0,0,0,0.2); border-radius:10px;">
+    {% set chat_post_url = url_for('oral.chat', session_id=session.id) %}
+    {% set current_phase = 3 %}
+    {% include "oral/_left_panel.html" %}
+  </div>
+
+  <div class="col-lg-7" style="box-shadow:3px 3px 30px #dbdbdb; border-radius:10px; padding:16px;">
+    <form method="post">
+
+      {# --- Summary card (read-only context) --- #}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title mb-2">Consultation summary so far</h5>
+          <p class="text-muted mb-3">Use this summary to inform shared decision-making and planning.</p>
+
+          <div class="mb-2">
+            <strong>Diagnosis (from Phase 2):</strong><br>
+            <div class="text-muted" style="white-space: pre-wrap;">{{ session.diagnoses or "—" }}</div>
+          </div>
+
+          <div class="mb-2">
+            <strong>Risk assessment (from Phase 2):</strong><br>
+            <div class="text-muted" style="white-space: pre-wrap;">{{ session.risk_assessment or "—" }}</div>
+          </div>
+
+          {% if test_results is defined and test_results %}
+            <hr>
+            <strong>Investigations & results:</strong>
+            <ul class="list-unstyled mb-0 mt-2">
+              {% for result in test_results %}
+                <li class="mb-2">
+                  <strong>{{ result.name or result.code }}</strong>
+                  {% if result.type %}
+                    <small class="text-muted">({{ result.type.replace('_', ' ') }})</small>
+                  {% endif %}
+                  <br>
+                  {% if result.available %}
+                    <span class="text-muted">{{ result.result_text }}</span>
+                  {% else %}
+                    <span class="text-warning">{{ result.result_text }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% elif session.selected_tests %}
+            <hr>
+            <strong>Investigations selected:</strong>
+            <div class="text-muted mt-1">{{ session.selected_tests | join(", ") }}</div>
+          {% endif %}
+
+          {% if session.radiograph_report %}
+            <hr>
+            <strong>Your radiograph report:</strong><br>
+            <div class="text-muted" style="white-space: pre-wrap;">{{ session.radiograph_report }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# --- Planning card --- #}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title mb-2">Management planning</h5>
+          <p class="text-muted mb-3">Write what you would do and explain why, linking to diagnosis and risk.</p>
+
+          <div class="mb-3">
+            <label class="form-label">Prevention & stabilisation plan</label>
+            <textarea name="prevention_plan" class="form-control" rows="3">{{ session.prevention_plan or "" }}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Operative / intervention options</label>
+            <textarea name="operative_options" class="form-control" rows="3">{{ session.operative_options or "" }}</textarea>
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label">Rehabilitation options</label>
+            <textarea name="rehab_options" class="form-control" rows="3">{{ session.rehab_options or "" }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      {# --- Shared decision-making card --- #}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title mb-2">Shared decision-making</h5>
+          <p class="text-muted mb-3">Document what you discussed and what the patient prefers.</p>
+
+          <div class="mb-3">
+            <label class="form-label">Discussion & patient preferences</label>
+            <textarea name="patient_preferences" class="form-control" rows="3">{{ session.patient_preferences or "" }}</textarea>
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label">Final plan & consent notes</label>
+            <textarea name="final_plan_and_consent_notes" class="form-control" rows="3">{{ session.final_plan_and_consent_notes or "" }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        Submit case &amp; finish
+      </button>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

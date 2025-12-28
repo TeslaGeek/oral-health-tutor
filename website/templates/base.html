@@ -1,0 +1,66 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="AI-based service for patient assessment.">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Intelligent Education Systems - AI service for patient assessment {% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="preload" as="style" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mukta+Malar:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tenor+Sans:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+<nav class="navbar navbar-expand-lg navbar-light">
+    <a class="navbar-brand" href="#">IES</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+          <span class="beta-indicator">Beta v0.5</span>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('oral.welcome') }}">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+
+{% with messages = get_flashed_messages(with_categories = true)%}
+{% if messages%}
+    {% for category, message in messages %}
+    {% if category == 'error'%}
+        <div class="alert alert-danger alert-dismissable fade show" role="alert">
+            {{message}}
+            <button type="button"  class = "close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% else %}
+        <div class="alert alert-success alert-dismissable fade show" role="alert">
+            {{message}}
+            <button type="button"  class = "close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endif %}
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+    <div class="container">
+        {%block content%}{%endblock%}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,136 @@
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title mb-2">Patient details</h5>
+
+    <div class="d-flex">
+      {% set patient_img = case_payload.patient.patient_img if case_payload and case_payload.patient and case_payload.patient.patient_img else url_for('static', filename='images/charlotte.jpg') %}
+      <img src="{{ patient_img }}" alt="patient photo"
+           style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin-right:10px;">
+
+      <div style="font-size:14px;">
+        <div><strong>Name:</strong> {{ (case_payload.patient.name if case_payload and case_payload.patient else "—") }}</div>
+        <div><strong>Address:</strong> {{ (case_payload.patient.address if case_payload and case_payload.patient else "—") }}</div>
+        <div><strong>DOB:</strong> {{ (case_payload.patient.dob if case_payload and case_payload.patient else "—") }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title">Talk to the patient</h5>
+
+    <div id="chat-log"
+         style="height: 45vh; overflow-y: auto; background:#fafafa; border:1px solid #eee; border-radius:8px; padding:10px;">
+      {% if chat_log %}
+        {% for m in chat_log %}
+          {% set role = m.get("role") %}
+          <div class="mb-2">
+            <strong>{{ "Student" if role == "user" else "Patient" }}:</strong>
+            <span>{{ m.get("content", "") }}</span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-muted">Start by greeting the patient and asking open questions.</div>
+      {% endif %}
+    </div>
+    <div id="typing-indicator" class="text-muted small mt-2" style="display:none;">Patient is typing…</div>
+
+    <div class="input-group mt-2">
+      <input id="chat-input" type="text" class="form-control"
+             placeholder="Type your questions to the patient here...">
+      <div class="input-group-append">
+        <button id="chat-send" class="btn btn-primary" type="button">Send</button>
+      </div>
+    </div>
+
+    <small class="text-muted d-block mt-2">Phase {{ current_phase }}</small>
+  </div>
+</div>
+
+{% if session and session.feedback_json %}
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">Feedback</h5>
+    <pre class="small mb-0" style="white-space: pre-wrap;">{{ session.feedback_json | tojson(indent=2) }}</pre>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  function getCsrfToken() {
+    const el = document.querySelector('meta[name="csrf-token"]');
+    return el ? el.getAttribute('content') : '';
+  }
+
+  function appendChat(role, text) {
+    const log = document.getElementById("chat-log");
+    if (!log) return;
+    const div = document.createElement("div");
+    div.className = "mb-2";
+    div.innerHTML = "<strong>" + (role === "user" ? "Student" : "Patient") + ":</strong> ";
+    const span = document.createElement("span");
+    span.textContent = text;
+    div.appendChild(span);
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setTyping(show) {
+    const indicator = document.getElementById("typing-indicator");
+    if (!indicator) return;
+    indicator.style.display = show ? "block" : "none";
+  }
+
+  async function sendChat() {
+    const input = document.getElementById("chat-input");
+    const sendBtn = document.getElementById("chat-send");
+    if (!input) return;
+    const msg = (input.value || "").trim();
+    if (!msg) return;
+
+    appendChat("user", msg);
+    input.value = "";
+    if (sendBtn) sendBtn.disabled = true;
+    setTyping(true);
+
+    try {
+      const resp = await fetch("{{ chat_post_url }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrfToken(),
+          "X-CSRF-Token": getCsrfToken()
+        },
+        body: JSON.stringify({ message: msg, phase: {{ current_phase|default(1) }} })
+      });
+
+      const data = await resp.json();
+      if (data.ok) {
+        appendChat("assistant", data.reply);
+      } else {
+        appendChat("assistant", "Sorry — something went wrong: " + (data.error || "unknown error"));
+      }
+    } catch (e) {
+      appendChat("assistant", "Sorry — network error.");
+    } finally {
+      setTyping(false);
+      if (sendBtn) sendBtn.disabled = false;
+    }
+  }
+
+  (function initChat() {
+    const log = document.getElementById("chat-log");
+    if (log) log.scrollTop = log.scrollHeight;
+    const sendBtn = document.getElementById("chat-send");
+    if (sendBtn) {
+      sendBtn.addEventListener("click", sendChat);
+    }
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) {
+      chatInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") { e.preventDefault(); sendChat(); }
+      });
+    }
+  })();
+</script>

@@ -1,0 +1,163 @@
+{
+  "case_id": "DENT-CHARLOTTE-001",
+  "version": "0.1",
+  "patient": {
+    "name": "Charlotte",
+    "dob": "1994-01-01",
+    "address": "Bristol",
+    "age": 30,
+    "occupation": "Crowdfunding manager",
+    "persona": "Active lifestyle, goes to the gym regularly, health-conscious, proactive about health.",
+    "patient_img": null
+  },
+
+  "guardrails": {
+    "style": "friendly, cooperative, not overly verbose",
+    "disclosure_rules": [
+      {
+        "id": "infectious_disease_disclosure",
+        "trigger": {
+          "type": "topic",
+          "keywords_any": ["infectious", "hepatitis", "blood-borne", "HIV", "needle stick", "infections diseases"]
+        },
+        "reveal_text": "Hepatitis and early cirrhosis due to a needle stick injury as a teenager; occasional fatigue and slight jaundice; ongoing medical follow-up."
+      }
+    ],
+    "do_not_volunteer": [
+      "Hepatitis/early cirrhosis unless specifically asked about infectious diseases."
+    ]
+  },
+
+  "history_truth": {
+    "hpc": {
+      "summary": "Increasing sensitivity to sweet and cold foods; pain lasts a few seconds then subsides; not sporadic; no night pain; no pain on biting; otherwise negative.",
+      "attendance_reason": "Routine check-up; sensitivity noted.",
+      "last_checkup": "2 years ago (moved out of family home, delayed registering)."
+    },
+    "expectations": {
+      "summary": "Wants a check-up and reassurance; wants to understand why teeth are sensitive; anxious about the possibility of needing root canal (friend had traumatic experience)."
+    },
+    "medical_history": {
+      "conditions": [
+        "GORD",
+        "Peptic ulcers",
+        "Hypothyroidism",
+        "Fibromyalgia",
+        "Tension-type headaches",
+        "Hepatitis and early cirrhosis (conditional disclosure)"
+      ],
+      "notes": "GORD/ulcers improved recently with medication/diet. Hypothyroid meds unknown name."
+    },
+    "social_history": {
+      "smoking": "Non-smoker",
+      "recreational_drugs": "None",
+      "alcohol": "3–4 gin and tonics on Friday",
+      "stress": "Doesn't feel stressed day-to-day; suspects occasional grinding when impatient or at the gym",
+      "access": "No transport/caring issues"
+    },
+    "preventive_regime": {
+      "brushing": "Twice daily electric toothbrush (rotating head).",
+      "interdental": "Floss occasionally when something stuck; occasional bleeding on flossing.",
+      "mouthwash": "Not regular",
+      "toothpaste": "Whitening paste; gritty feel; thinks fluoride but not sure; used to remove coffee/wine stains",
+      "previous_clean": "Can't recall prior cleaning at dentist"
+    },
+    "dietary_habits": {
+      "coffee": "1 cup mornings, milk no sugar; breakfast before cleaning teeth",
+      "tea": "Fruit tea during the day at work (esp colder months)",
+      "gym_drinks": "Smoothies or isotonic drinks (e.g. Lucozade Sport)",
+      "snacks": "Fruit at work (apples, strawberries); no sweets"
+    }
+  },
+
+  "baseline_findings": {
+    "hard_tissue_notes": [
+      "LR4 enamel fracture on lingual aspect",
+      "LR5 shadowed occlusal lesion, not cavitated",
+      "LL6 occlusal composite appears sound"
+    ],
+    "bpe_codes": ["1", "1", "1", "2", "2", "2"],
+    "extra_oral": "Reproducible click of right TMJ on opening; otherwise normal.",
+    "intra_oral": "Mild recession lower incisors labially; no obvious visible plaque deposits."
+  },
+
+  "clarification_prompts": [
+    "When was the last check-up?",
+    "LR4 enamel fracture: how did this happen? (patient unsure; possibly 6 months ago opening drinks bottle with teeth)",
+    "Is right TMJ click painful? Does jaw ever lock open or closed?"
+  ],
+
+  "tests_catalogue": {
+    "options": [
+      { "code": "RAD_BW", "name": "Radiograph – bitewing", "type": "radiograph" },
+      { "code": "RAD_PA", "name": "Radiograph – periapical", "type": "radiograph" },
+      { "code": "RAD_OPG", "name": "Radiograph – OPG", "type": "radiograph" },
+      { "code": "OCCL_BASIC", "name": "Basic occlusal assessment", "type": "clinical_test" },
+      { "code": "SENS", "name": "Sensibility tests", "type": "clinical_test" },
+      { "code": "CRACKED_CUSP", "name": "Cracked cusp test", "type": "clinical_test" },
+      { "code": "FREMITUS", "name": "Fremitus test", "type": "clinical_test" }
+    ],
+    "recommended_for_case": ["RAD_BW"],
+    "availability": {
+      "RAD_BW": {
+        "available": true,
+        "image_url": null,
+        "gold_report": [
+          "Quality unacceptable (first premolars missed)",
+          "Horizontal bone levels normal – high",
+          "No obvious interproximal radiolucencies",
+          "Occlusal radiolucency LR5 consistent with caries into first half of dentine (D1)",
+          "Radiopacities occlusally LR6, LR7 consistent with existing fissure sealants",
+          "Radiopacity occlusally LL6 consistent with composite restoration"
+        ],
+        "key_findings": [
+          "LR5 occlusal caries into D1",
+          "Sealants LR6/LR7",
+          "Composite LL6",
+          "Quality issue: first premolars missed"
+        ]
+      },
+      "SENS": { "available": false, "reason": "Results not available for this case." },
+      "RAD_PA": { "available": false, "reason": "Not provided for this case." },
+      "RAD_OPG": { "available": false, "reason": "Not provided for this case." },
+      "OCCL_BASIC": { "available": false, "reason": "Not provided for this case." },
+      "CRACKED_CUSP": { "available": false, "reason": "Not provided for this case." },
+      "FREMITUS": { "available": false, "reason": "Not provided for this case." }
+    }
+  },
+
+  "diagnosis_truth": [
+    "Anterior disc displacement with reduction of the right TMJ",
+    "Generalised gingivitis secondary to plaque and calculus deposits",
+    "Early/mild localised tooth wear (central incisors) secondary to dietary factors",
+    "Occlusal caries LR5 – ICDAS 4",
+    "Enamel-only fracture, lingual aspect LR4"
+  ],
+
+  "risk_truth": {
+    "domains": {
+      "caries": "high",
+      "periodontal": "low",
+      "tooth_wear": "moderate",
+      "soft_tissues": "low",
+      "endodontic": "low"
+    },
+    "narrative": "High caries risk with dietary acid/sugar exposures (fruit tea, isotonic/smoothies, fruit frequency) and lesion LR5; periodontal low; wear moderate likely diet-related; soft tissues/endodontic low."
+  },
+
+  "plan_truth": {
+    "prevention_and_stabilisation": [
+      "Plaque score and tailored oral hygiene instruction",
+      "Localised supra-gingival scaling",
+      "Comprehensive diet and behavioural analysis"
+    ],
+    "operative_and_rehab_options": [
+      "Caries removal and direct restoration LR5 occlusally (discuss risks: nerve damage low, post-op sensitivity low; avoid overtreatment).",
+      "Direct composite repair LR4 to restore form, reduce roughness/food trap/staining; low risk; main risk loss of restoration."
+    ]
+  },
+
+  "patient_preferences_truth": {
+    "summary": "Wants LR5 restored; prefers to leave LR4 for now; keen to focus on diet/behaviour analysis; will rebook for filling due to gym."
+  }
+}

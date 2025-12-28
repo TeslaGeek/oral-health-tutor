@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="mb-3">Case submitted</h1>
+
+<p class="lead">Thank you. Your session has been submitted.</p>
+
+<p class="mb-3">
+  Session ID: <strong>{{ session.id }}</strong><br>
+  Case ID: <strong>{{ session.case_id }}</strong><br>
+  Status: <strong>{{ session.status.value if session.status else "unknown" }}</strong><br>
+  {% if session.overall_score %}
+    Overall score: <strong>{{ session.overall_score }}/10</strong>
+  {% endif %}
+</p>
+
+{% if session.feedback_json %}
+  <hr class="my-4">
+
+  <h2 class="h4 mb-3">AI Feedback</h2>
+
+  <div class="mb-3">
+    <h3 class="h5">History & information</h3>
+    <p><strong>Score:</strong>
+      {{ session.section_scores_json["history_and_information"] if session.section_scores_json and "history_and_information" in session.section_scores_json else "N/A" }}/10
+    </p>
+    <p>{{ session.feedback_json["history_and_information"] if session.feedback_json and "history_and_information" in session.feedback_json else "No feedback." }}</p>
+  </div>
+
+  <div class="mb-3">
+    <h3 class="h5">Investigations & diagnosis</h3>
+    <p><strong>Score:</strong>
+      {{ session.section_scores_json["investigations_and_diagnosis"] if session.section_scores_json and "investigations_and_diagnosis" in session.section_scores_json else "N/A" }}/10
+    </p>
+    <p>{{ session.feedback_json["investigations_and_diagnosis"] if session.feedback_json and "investigations_and_diagnosis" in session.feedback_json else "No feedback." }}</p>
+  </div>
+
+  <div class="mb-3">
+    <h3 class="h5">Planning & consent</h3>
+    <p><strong>Score:</strong>
+      {{ session.section_scores_json["planning_and_consent"] if session.section_scores_json and "planning_and_consent" in session.section_scores_json else "N/A" }}/10
+    </p>
+    <p>{{ session.feedback_json["planning_and_consent"] if session.feedback_json and "planning_and_consent" in session.feedback_json else "No feedback." }}</p>
+  </div>
+
+  <div class="mb-3">
+    <h3 class="h5">Overall summary</h3>
+    <p>{{ session.feedback_json["overall_summary"] if session.feedback_json and "overall_summary" in session.feedback_json else "No overall summary." }}</p>
+  </div>
+{% else %}
+  <p class="text-muted">
+    AI feedback is not available for this session.
+  </p>
+{% endif %}
+
+<a href="{{ url_for('oral.list_cases') }}" class="btn btn-secondary mt-3">
+  Back to cases
+</a>
+
+{% endblock %}

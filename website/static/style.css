@@ -1,0 +1,942 @@
+/**
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+.beta-indicator {
+    background-color: #c1caba;
+    color: white;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 10px;
+    font-weight: 100;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+}
+
+.footer-text{
+    color: #a0a0a0;
+    font-size: 12px;
+    margin-top: 20px;
+}
+
+.navbar {
+  background-color: #f9f9f9; /* Almost white background */
+  border-bottom: 2px solid #cccccc; /* Light gray bottom border */
+}
+.navbar-brand, .nav-link {
+  color: #21252a !important; /* Slightly gray text */
+}
+
+.download-bar{
+    width: 100%;
+    height: 30px;
+}
+
+ .navbar-brand {
+   font-family: 'Poppins', serif;
+            font-weight: 100;
+            text-align: center;
+  text-align: center;
+     margin-left: 50px;
+  font-size: 2.1rem; /* Adjusted as per your current setting */
+  color: white; /* Ensures the text color is white, adjust if needed */
+
+  padding: 1px; /* Adds some padding around the text */
+     padding-left: 20px;
+  border-radius: 5px; /* Optional: Adds rounded corners to the border */
+  display: inline-block; /* Ensures the padding and border are applied correctly */
+  text-decoration: none; /* Removes underline from the link */
+}
+
+.navbar-item {
+  font-family: "Poppins","Verdana", Sans-serif;
+  text-align: center;
+}
+
+.flex-shrink-0 {
+  font-family: "Poppins","Verdana", Sans-serif;
+  text-align: center;
+}
+
+h5{
+  font-family: "Poppins","Verdana", Sans-serif;
+}
+h4{
+  font-family: "Poppins","Verdana", Sans-serif;
+}
+
+h3{
+  font-family: "Poppins","Verdana", Sans-serif;
+
+}
+
+h2{
+  font-family: "Poppins","Verdana", Sans-serif;
+}
+
+h1{
+  font-family: "Poppins","Verdana", Sans-serif;
+  margin-top: 2%;
+    margin-bottom: 2%;
+}
+
+body{
+  font-family: "Poppins","Verdana", Sans-serif;
+}
+
+
+.beveled-container img,
+.beveled-container video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+.beveled-container {
+    display: inline-block;
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    padding: 5px;
+    width: 107%;
+    background-color: #fff;
+    margin-left: -4%;
+    margin-bottom: 1px;
+}
+
+.flex-container {
+    margin-top: 10px;
+}
+
+.persona-info {
+    white-space: nowrap;   /* Prevents wrapping for the name line */
+}
+
+.persona-info strong {
+    margin-right: 1px;     /* Adds space between the label and value */
+}
+
+.persona-info {
+    margin: 0;
+}
+
+/* This should stop the eye examination page from wrapping the 2 columns */
+.row {
+  display: flex;
+  margin-right: -15px;
+  margin-left: -15px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.typing-indicator {
+  font-size: 12px;
+  font-style: italic;
+  color: #6c757d;
+  letter-spacing: 0.02em;
+}
+
+.typing-indicator .dot {
+  display: inline-block;
+  animation: typing-bounce 1.2s infinite;
+  opacity: 0.2;
+}
+
+.typing-indicator .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
+
+.twoColumns {
+  display: flex;
+  flex-direction: row;
+  background-color: #f9f9f9;
+  align-content: center;
+  padding: 9px;
+  border-radius: 10px;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+}
+
+.custom-margin {
+    margin-top: 0px; /* or any smaller value you prefer */
+}
+
+
+/* Add custom styles if needed */
+table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+
+    }
+
+/* Waiting Room cards */
+.waiting-room {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.waiting-room-title {
+  font-weight: 400;
+}
+
+.waiting-room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  justify-items: center;
+}
+
+.patient-card-soft {
+  width: 260px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 14px 14px 16px;
+  text-align: left;
+}
+
+.patient-image {
+  background: #f5f5f5;
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+  margin-bottom: 10px;
+}
+
+.patient-image img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.patient-meta {
+  font-size: 0.95rem;
+}
+
+.patient-row {
+  margin-bottom: 4px;
+}
+
+    th, td {
+      text-align: center;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+
+    .label-container {
+      position: relative;
+    }
+
+    .label-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .image-container {
+      position: relative;
+    }
+
+    .image-container img {
+      width: 100%; /* Make image fill the container */
+    }
+    /* Style for the caption */
+    caption {
+      caption-side: top;
+      /*font-weight: bold;*/
+      font-size: 14px;
+      margin-bottom: 0px;
+    }
+.checkbox-container {
+      width: 300px; /* Adjust the width as needed */
+      padding: 1px;
+      box-sizing: border-box;
+    }
+    .checkbox-columns {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .checkbox-column {
+      width: 50%;
+    }
+    .checkbox-label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    /* Style for the button */
+    #HnSsubmitBtn {
+      background-color: #3A3B3C; /* Dark grey color */
+      border: none;
+            max-height: 50px;
+    font-size: medium;
+    }
+
+    /* Override Bootstrap button styles */
+    #HnSsubmitBtn:hover {
+      background-color: dimgrey; /* Darker grey on hover */
+    }
+
+    /* Override Bootstrap button styles for active state */
+    #HnSsubmitBtn:active {
+      background-color: #000000; /* Even darker grey on click */
+    }
+
+    /* Style for the button */
+    #GoBackBtn {
+      background-color: #3A3B3C; /* Dark grey color */
+      border: none;
+    }
+
+    /* Override Bootstrap button styles */
+    #GoBackBtn:hover {
+      background-color: dimgrey; /* Darker grey on hover */
+    }
+
+    /* Override Bootstrap button styles for active state */
+    #GoBackBtn:active {
+      background-color: #000000; /* Even darker grey on click */
+    }
+
+    /* Style for the button */
+    #FeedbacksubmitBtn {
+      background-color: #3A3B3C; /* Dark grey color */
+      border: none;
+    }
+
+    /* Override Bootstrap button styles */
+    #FeedbacksubmitBtn:hover {
+      background-color: dimgrey; /* Darker grey on hover */
+    }
+
+    /* Override Bootstrap button styles for active state */
+    #FeedbacksubmitBtn:active {
+      background-color: #000000; /* Even darker grey on click */
+    }
+
+
+/*#submitBtn:focus, #submitBtn:active {
+  background-color: white; /* Makes the background white */
+  /*color: #343a40; /* Dark grey text for visibility */
+  /*border-color: #343a40; /* Optionally, sets the border color to match the text */
+  /*outline: none; /* Removes the default focus outline */
+  /*box-shadow: none; /* Removes Bootstrap's default focus shadow if present */
+/*}*/
+
+#submitBtn {
+      background-color: #3A3B3C; /* Dark grey color */
+      border: none;
+            max-height: 50px;
+    font-size: medium;
+    }
+
+/* Override Bootstrap button styles */
+#submitBtn:hover {
+      background-color: dimgrey; /* Darker grey on hover */
+}
+/* Override Bootstrap button styles for active state */
+#submitBtn:active {
+      background-color: #000000; /* Even darker grey on click */
+}
+
+#download {
+    background-color: #3A3B3C;
+    /*color: #f4f4f4;
+    border-color: #3A3B3C;*/
+    border: none;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    float: right;
+    margin: 0px;
+    border-radius: 5px;
+}
+
+/* Override Bootstrap button styles */
+#download:hover {
+      background-color: dimgrey; /* Darker grey on hover */
+}
+
+/* Override Bootstrap button styles for active state */
+#download:active {
+      background-color: #000000; /* Even darker grey on click */
+}
+
+
+.responsive {
+  max-width: 100%;
+  height: auto;
+}
+
+.right {
+  max-width: 100%;
+  margin-left: 28px;
+    text-align: left;
+}
+
+.leftside {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-top: 15px;
+    gap: 10px;
+}
+/*
+.leftside {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+}*/
+/*
+.labelexpanded {
+    font-size: 12px;
+}*/
+
+.labelexpanded {
+    font-size: 13px;
+    width: 200px;
+    height: 200px;
+    margin: 5px;
+}
+
+.labelexpanded > input {
+    display: none;
+}
+.labelexpanded input:checked + .radio-btns {
+    background-color: dimgray;
+    color:floralwhite;
+}
+.radio-btns {
+    width: 200px;
+    height: 200px;
+    border-radius: 15px;
+    /*position: relative;*/
+    text-align: center;
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: white;
+    box-shadow: 3px 3px 30px #dbdbdb;
+    /*float: top;*/
+    /*margin-right: 15px;
+    margin-bottom: 15px;*/
+    margin: 0 15px 15px 0;
+}
+.radio-btns > img {
+    width: 120px;
+    height: 90px;
+}
+
+.scroll {
+    margin:4px 4px;
+    padding:4px 4px;
+    background-color: white;
+    width: 100%;
+    height: 250px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    text-align:justify;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column-reverse;
+}
+textarea {
+    width: 100%;
+    height: 180px;
+    border-radius: 5px;
+    border-color: #cccccccc;
+    box-sizing: border-box;
+}
+
+#history_n_symptoms_text {
+    min-height: 200px;
+    resize: vertical;
+}
+
+.checkbox-columns {
+    display: flex;
+    justify-content: space-between; /* Adjust the gap between columns */
+    width: 200%;
+}
+
+.checkbox-column {
+    flex: 0 0 calc(30% - 5px); /* Adjust the width and gap between columns */
+    /* 50% is for two columns, and 10px is the desired gap */
+}
+
+.checkbox-container label {
+    display: block; /* Display labels as block elements */
+    font-size: 12px; /* Adjust the font size of labels */
+    margin-bottom: 5px; /* Add space between checkboxes */
+
+}
+
+.form-control.form-control-sm {
+    width: 135%; /* Set the desired width in pixels */
+}
+
+.media-thumb {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-top: 8px;
+    border-radius: 6px;
+}
+#voice .form-control.form-control-sm {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+/* Reduce the gap between label and input */
+.form-group.row label {
+    padding-right: 0px; /* Adjust this value to control the gap */
+}
+
+.form-group.row .form-control {
+    margin-left: 0px; /* Adjust this value to control the gap */
+}
+
+.content-box {
+    border: 1px solid #ccc;
+    font-size: 14px;
+    border-radius: 10px; /* rounded corners */
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.content-box h5 {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.content-box p {
+    margin-bottom: 15px;
+}
+
+.content-box ul {
+    margin-bottom: 15px;
+}
+
+.content-box blockquote {
+    margin: 20px 0;
+    padding-left: 20px;
+    border-left: 4px solid #007BFF;
+}
+
+/* styles.css */
+.image-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.image-wrapper img {
+    width: 100px; /* adjust this as per your requirements */
+    cursor: pointer;
+}
+
+.magnifier-icon {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    cursor: pointer;
+    font-size: 24px;
+    background: rgba(255,255,255,0.7);
+    padding: 5px;
+    border-radius: 50%;
+}
+
+/* styles for the enlarged image overlay */
+.enlarged-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.enlarged-overlay img {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+
+#loadingPopup {
+    display: flex;
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center-align children horizontally */
+    justify-content: center; /* Center-align children vertically */
+}
+
+.spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #c1caba;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+    margin-bottom: 15px; /* Space between spinner and text */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* Scoped styles for the report modal and button */
+.report-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000; /* Ensure the modal has a high z-index */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    padding-top: 60px;
+}
+
+.report-modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px; /* Set max width to make it smaller */
+    border-radius: 10px; /* Add border radius for smoother corners */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Add box shadow for depth */
+}
+
+.report-modal .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.report-modal .close:hover,
+.report-modal .close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Style the form elements */
+.report-modal form {
+    display: flex;
+    flex-direction: column;
+}
+
+.report-modal form label {
+    margin-top: 10px;
+}
+
+.report-modal form input,
+.report-modal form select,
+.report-modal form textarea,
+.report-modal form button {
+    margin-top: 5px;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 5px; /* Add border radius for smoother corners */
+    border: 1px solid #ccc; /* Add a light border */
+}
+
+.report-modal form button {
+    background-color: dimgrey;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.report-modal form button:hover {
+    background-color: #000000; /* Darker green on hover */
+}
+
+#reportBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #c1caba;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Sticky first column for wide tables */
+.table-sticky th:first-child,
+.table-sticky td:first-child {
+  position: sticky;
+  left: 0;
+  background-color: #fff;
+  z-index: 2;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}
+.table-sticky thead th {
+  background-color: #f8f9fa;
+  z-index: 3;
+}
+
+.sticky-export {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 5;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.dot {
+    height: 10px;
+    width: 10px;
+    margin: 1px;
+    display: inline-block;
+    border-radius: 50%;
+}
+.dot-green { background-color: #28a197; }
+.dot-amber { background-color: #ffdd00; }
+.dot-red { background-color: #d4351c; }
+
+.score-cell {
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 6px 4px;
+}
+
+.score-cell .score {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.score-cell .attempts {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+.cell-red .score-cell,
+.cell-green .score-cell,
+.cell-red .attempt-count,
+.cell-green .attempt-count {
+    color: white !important;
+}
+
+.attempt-count {
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  border-radius: 10px;
+}
+.ofr-bar-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);  /* Three equal-width columns */
+  align-items: end;
+  height: 48px;  /* Adjust based on your row height */
+}
+
+.ofr-bar {
+  width: 100%;   /* Fills the entire column cell */
+  border-radius: 2px 2px 0 0;
+}
+
+.ofr-bar.red   { background-color: #d4351c; }
+.ofr-bar.amber { background-color: #ffdd00; }
+.ofr-bar.green { background-color: #28a197; }
+
+/* Add to your style.css or <style> block */
+
+.cell-red {
+  background-color: #d4351c;  /* gentle red (bootstrap alert-light red) */
+}
+
+.cell-amber {
+  background-color: #ffdd00;  /* light amber/yellow */
+}
+
+.cell-green {
+  background-color: #28a197;  /* your preferred gentle green */
+}
+
+.legend-box .legend-swatch {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.legend-box .cell-green { background-color: #28a197; color: white; }
+.legend-box .cell-amber { background-color: #ffdd00; color: #000; }
+.legend-box .cell-red   { background-color: #d4351c; color: white; }
+
+/* BS5: override CSS variables for .btn-primary */
+.btn-primary {
+  --bs-btn-bg: #343a40;
+  --bs-btn-border-color: #363637;
+  --bs-btn-hover-bg: #8f8f8f;
+  --bs-btn-hover-border-color: #484949;
+  --bs-btn-active-bg: #000000;
+  --bs-btn-active-border-color: #000000;
+  --bs-btn-focus-shadow-rgb: 0, 0, 0; /* kills blue glow */
+}
+
+/* BS5 active variants (btn-check etc.) */
+.btn-check:checked + .btn-primary,
+.btn-check:active + .btn-primary,
+.btn-primary:active,
+.btn-primary.active,
+.show > .btn-primary.dropdown-toggle {
+  background-color: #000000;
+  border-color: #000000;
+}
+
+/* BS4/compat fallback to be extra safe */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary:active:focus,
+.btn-primary:focus-visible {
+  color: #fff;
+  background-color: #343a40;
+  border-color: #363637;
+}
+.btn-primary:hover { background-color: #8f8f8f; border-color: #484949; }
+.btn-primary:active,
+.btn-primary.active,
+.show > .btn-primary.dropdown-toggle {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.btn-primary:focus,
+.btn:focus {
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+.nav-pills.nav-bold .nav-link {
+  padding: .6rem 1rem;
+  font-weight: 600;
+  color: #495057;
+  border-radius: .6rem;
+  background: #f1f3f5;
+  margin-right: .4rem;
+}
+
+.nav-pills.nav-bold .nav-link:hover {
+  background: #e9ecef;
+  color: #212529;
+}
+
+.nav-pills.nav-bold .nav-link.active {
+  background: #343a40;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+/* Ensure active pill text is white on dark background */
+.nav-pills.nav-bold .nav-link.active,
+.nav-pills.nav-bold .nav-link.active:hover,
+.nav-pills.nav-bold .show > .nav-link,
+.nav-pills.nav-bold .nav-link[aria-selected="true"] {
+  color: #fff !important;
+  background: #343a40 !important; /* keep your dark fill */
+}
+
+/* keep focus ring inside the control */
+#audience-box .form-control:focus {
+  border-color: #0d6efd !important;
+  box-shadow: inset 0 0 0 2px rgba(13,110,253,.9) !important;
+  outline: none !important;
+}
+
+/* nicer in newer browsers */
+#audience-box .form-control:focus-visible {
+  border-color: #0d6efd !important;
+  box-shadow: inset 0 0 0 2px rgba(13,110,253,.9) !important;
+  outline: none !important;
+}
+
+/* Tests table: smaller labels, wrap long names nicely */
+#testsTable td,
+#testsTable th {
+  font-size: 0.75rem;     /* ~14px */
+  line-height: 1.15;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Optional: make help buttons tighter */
+.btn-test-help,
+.btn-media-help {
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.voice-log {
+  min-height: 160px;
+  max-height: 320px;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+}
+
+.voice-line {
+  font-size: 0.95rem;
+}
+
+.voice-line-assistant {
+  color: #155724;
+}
+
+.voice-line-user {
+  color: #004085;
+}

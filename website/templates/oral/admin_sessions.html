@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="mb-4">All Sessions (Admin view)</h1>
+
+<p class="text-muted">
+  This page lists recent student sessions with scores and basic info.
+</p>
+
+<table class="table table-striped table-sm align-middle">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Student</th>
+      <th>Case</th>
+      <th>Attempt</th>
+      <th>Status</th>
+      <th>Overall</th>
+      <th>History / Info</th>
+      <th>Investigations</th>
+      <th>Planning</th>
+      <th>Started</th>
+      <th>Completed</th>
+      <th>View</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for s in sessions %}
+    {% set case = cases.get(s.case_id) %}
+    <tr>
+      <td>{{ s.id }}</td>
+      <td>{{ s.student_identifier }}</td>
+      <td>
+        {% if case %}
+          {{ case.title }}<br>
+          <small class="text-muted">{{ case.case_code }}</small>
+        {% else %}
+          #{{ s.case_id }}
+        {% endif %}
+      </td>
+      <td>{{ s.attempt_number }}</td>
+      <td>{{ s.status.value if s.status else "unknown" }}</td>
+      <td>
+        {% if s.overall_score is not none %}
+          {{ "%.1f"|format(s.overall_score) }}/10
+        {% else %}
+          –
+        {% endif %}
+      </td>
+      <td>
+        {% if s.section_scores_json and "history_and_information" in s.section_scores_json %}
+          {{ "%.1f"|format(s.section_scores_json["history_and_information"]) }}/10
+        {% else %}
+          –
+        {% endif %}
+      </td>
+      <td>
+        {% if s.section_scores_json and "investigations_and_diagnosis" in s.section_scores_json %}
+          {{ "%.1f"|format(s.section_scores_json["investigations_and_diagnosis"]) }}/10
+        {% else %}
+          –
+        {% endif %}
+      </td>
+      <td>
+        {% if s.section_scores_json and "planning_and_consent" in s.section_scores_json %}
+          {{ "%.1f"|format(s.section_scores_json["planning_and_consent"]) }}/10
+        {% else %}
+          –
+        {% endif %}
+      </td>
+      <td>{{ s.started_at or "" }}</td>
+      <td>{{ s.completed_at or "" }}</td>
+      <td>
+        <a class="btn btn-sm btn-outline-primary"
+           href="{{ url_for('oral.completed', session_id=s.id) }}">
+          Details
+        </a>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
