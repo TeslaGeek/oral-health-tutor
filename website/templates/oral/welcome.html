@@ -1,19 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Welcome{% endblock %}
 
+{% block body_class %}welcome-page{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-center vh-100">
+<style>
+  /* Give this page a wider canvas than the default container */
+  body.welcome-page .container { max-width: 1200px; }
+</style>
+<div class="d-flex justify-content-center vh-100 welcome-hero">
   <div class="d-flex flex-row justify-content-center align-items-center position-relative w-100"
-       style="transform: translateY(-8%);">
+       style="transform: translateY(-75px);">
 
     <!-- Left image -->
     <img src="{{ url_for('static', filename='images/Tutor.png') }}"
          class="img-fluid d-none d-md-block"
-         style="max-height: 300px; margin-right: -70px; margin-left: 20px; z-index: 0;" alt="Tutor">
+         style="max-height: 360px; margin-right: 12px; margin-left: 0; z-index: 0;" alt="Tutor">
 
     <!-- Center box -->
-    <div class="text-center bg-light shadow-lg rounded p-5 mx-2"
-         style="max-width: 520px; opacity: 0.96; z-index: 1; position: relative;">
+    <div class="text-center bg-light shadow-lg rounded p-5 mx-3 welcome-center"
+         style="flex: 0 1 520px; max-width: 580px; width: 50%; min-width: 480px; opacity: 0.96; z-index: 1; position: relative;">
       <h2 class="mb-3" style="font-family: 'Poppins', sans-serif;">Welcome to Oral Health Tutor</h2>
       <p class="mb-4 text-muted" style="font-family: 'Mukta Malar', sans-serif;">
         AI-powered virtual patients for oral health consultation practice, investigations, diagnosis, and planning.
@@ -23,17 +28,13 @@
         Start as student
       </a>
 
-      <a href="{{ url_for('oral.admin_sessions') }}" class="btn btn-outline-primary btn-block mb-2">
-        View sessions (admin)
-      </a>
-
       <div class="footer-text mt-4">Prototype by Intelligent Education Systems Ltd</div>
     </div>
 
     <!-- Right image -->
     <img src="{{ url_for('static', filename='images/pupil.png') }}"
          class="img-fluid d-none d-md-block"
-         style="max-height: 300px; margin-left: -140px; margin-right: 20px; z-index: 0;" alt="Pupil">
+         style="max-height: 360px; margin-left: 12px; margin-right: 0; z-index: 0;" alt="Pupil">
   </div>
 </div>
 {% endblock %}

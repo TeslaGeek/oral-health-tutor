@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tenor+Sans:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
 </head>
 
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <nav class="navbar navbar-expand-lg navbar-light">
     <a class="navbar-brand" href="#">IES</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,7 +27,7 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ml-auto">
-          <span class="beta-indicator">Beta v0.5</span>
+          <span class="beta-indicator">Beta v0.1</span>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('oral.welcome') }}">Home</a></li>
       </ul>
     </div>
