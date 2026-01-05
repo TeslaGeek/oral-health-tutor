@@ -59,6 +59,12 @@
             <strong>Your radiograph report:</strong><br>
             <div class="text-muted" style="white-space: pre-wrap;">{{ session.radiograph_report }}</div>
           {% endif %}
+
+          {% if session.investigation_notes %}
+            <hr>
+            <strong>Justification for investigations:</strong><br>
+            <div class="text-muted" style="white-space: pre-wrap;">{{ session.investigation_notes }}</div>
+          {% endif %}
         </div>
       </div>
 

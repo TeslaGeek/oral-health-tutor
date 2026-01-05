@@ -3,6 +3,7 @@ from sqlalchemy import (
     ForeignKey, TIMESTAMP, DECIMAL
 )
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.mutable import MutableList, MutableDict
 import enum
 
 Base = declarative_base()
@@ -46,7 +47,7 @@ class Session(Base):
     preventive_regime_notes = Column(Text)
 
     # Phase 2
-    selected_tests = Column(JSON)
+    selected_tests = Column(MutableList.as_mutable(JSON), default=list)
     radiograph_report = Column(Text)
     investigation_notes = Column(Text)
     diagnoses = Column(Text)
@@ -63,10 +64,10 @@ class Session(Base):
     phase3_completed_at = Column(TIMESTAMP)
 
     # Feedback
-    section_scores_json = Column(JSON)
+    section_scores_json = Column(MutableDict.as_mutable(JSON), default=dict)
     overall_score = Column(DECIMAL(4, 2))
-    feedback_json = Column(JSON)
-    chat_log = Column(JSON)
+    feedback_json = Column(MutableDict.as_mutable(JSON), default=dict)
+    chat_log = Column(MutableList.as_mutable(JSON), default=list)
 
     status = Column(
         Enum(SessionStatus),

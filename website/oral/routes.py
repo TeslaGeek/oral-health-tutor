@@ -1,47 +1,17 @@
+import os
 from datetime import datetime
 
 from flask import Blueprint, redirect, render_template, request, url_for, jsonify, session as flask_session, current_app
+from sqlalchemy.orm.attributes import flag_modified
 
 from .ai_feedback import generate_feedback_for_session
 from .case_loader import load_case
 from .patient_chat import patient_chat_reply
 from .db import SessionLocal
 from .models import Case, Session, SessionStatus
+from .utils_tests import build_test_results
 
 oral_bp = Blueprint("oral", __name__)
-
-
-def build_test_results(case_payload: dict, selected_codes):
-    test_options = case_payload.get("tests_catalogue", {}).get("options", []) if case_payload else []
-    availability = case_payload.get("tests_catalogue", {}).get("availability", {}) if case_payload else {}
-    tests_by_code = {t.get("code"): t for t in test_options}
-
-    test_results = []
-    for code in (selected_codes or []):
-        avail = availability.get(code, {})
-        available_flag = bool(avail.get("available"))
-        report_lines = avail.get("gold_report") or avail.get("key_findings")
-
-        if available_flag and report_lines:
-            result_text = "; ".join(report_lines)
-        elif available_flag:
-            result_text = "Results available for this test."
-        else:
-            result_text = avail.get("reason") or "Results not available for this test."
-
-        meta = tests_by_code.get(code, {})
-        test_results.append(
-            {
-                "code": code,
-                "name": meta.get("name", code),
-                "type": meta.get("type"),
-                "available": available_flag,
-                "result_text": result_text,
-                "image_url": avail.get("image_url"),
-            }
-        )
-
-    return test_options, test_results
 
 
 @oral_bp.route("/")
@@ -165,7 +135,7 @@ def phase2(session_id: int):
         if case:
             try:
                 case_payload = load_case(case.case_code)
-                test_options, test_results = build_test_results(case_payload, sess.selected_tests)
+                test_options, test_results = build_test_results(case_payload, sess.selected_tests, audience="student")
             except FileNotFoundError:
                 case_payload = None
         if request.method == "POST":
@@ -214,7 +184,7 @@ def phase3(session_id: int):
         if case:
             try:
                 case_payload = load_case(case.case_code)
-                test_options, test_results = build_test_results(case_payload, sess.selected_tests)
+                test_options, test_results = build_test_results(case_payload, sess.selected_tests, audience="student")
             except FileNotFoundError:
                 case_payload = None
         if request.method == "POST":
@@ -228,6 +198,22 @@ def phase3(session_id: int):
                 sess.phase3_completed_at = datetime.utcnow()
             sess.completed_at = datetime.utcnow()
             sess.status = SessionStatus.SUBMITTED
+
+            # Generate feedback synchronously unless disabled
+            if os.getenv("DISABLE_AI_FEEDBACK") == "1":
+                db.commit()
+                return redirect(url_for("oral.completed", session_id=session_id))
+
+            try:
+                feedback, scores, overall = generate_feedback_for_session(sess)
+                sess.feedback_json = feedback
+                sess.section_scores_json = scores
+                if overall is not None:
+                    sess.overall_score = overall
+                sess.status = SessionStatus.MARKED
+            except Exception:
+                current_app.logger.exception("Error generating AI feedback during Phase 3 submit")
+                sess.status = SessionStatus.SUBMITTED
 
             db.commit()
             return redirect(url_for("oral.completed", session_id=session_id))
@@ -281,6 +267,15 @@ def generate_feedback(session_id: int):
         if not sess:
             return jsonify({"ok": False, "error": "Session not found"}), 404
 
+        if os.getenv("DISABLE_AI_FEEDBACK") == "1":
+            return jsonify({"ok": False, "error": "AI feedback disabled"}), 503
+
+        # If already marked with feedback, return it
+        if sess.status == SessionStatus.MARKED and sess.feedback_json:
+            html = render_template("oral/_feedback_block.html", session=sess)
+            return jsonify({"ok": True, "status": "marked", "feedback_html": html}), 200
+
+        # Generate synchronously
         try:
             feedback, scores, overall = generate_feedback_for_session(sess)
             sess.feedback_json = feedback
@@ -289,9 +284,13 @@ def generate_feedback(session_id: int):
                 sess.overall_score = overall
             sess.status = SessionStatus.MARKED
             db.commit()
-            return jsonify({"ok": True})
+
+            html = render_template("oral/_feedback_block.html", session=sess)
+            return jsonify({"ok": True, "status": "marked", "feedback_html": html}), 200
         except Exception as e:
             current_app.logger.exception("Error generating AI feedback")
+            sess.status = SessionStatus.SUBMITTED
+            db.commit()
             return jsonify({"ok": False, "error": str(e)}), 500
     finally:
         db.close()
@@ -322,7 +321,7 @@ def chat(session_id: int):
                 case_payload = {}
 
         # Load existing chat log from DB; migrate legacy cookie log once if present
-        chat_log = sess.chat_log or []
+        chat_log = list(sess.chat_log or [])
         legacy_key = f"chat_log_{session_id}"
         legacy_log = flask_session.get(legacy_key, [])
         if legacy_log and not chat_log:
@@ -348,6 +347,7 @@ def chat(session_id: int):
         })
 
         sess.chat_log = chat_log
+        flag_modified(sess, "chat_log")
         db.commit()
 
         if legacy_key in flask_session:

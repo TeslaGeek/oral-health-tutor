@@ -2,11 +2,20 @@ import os
 import json
 from openai import OpenAI
 
+from .case_loader import load_case
+from .models import Case
+from .db import SessionLocal
+from .utils_tests import build_test_results
+
 API_KEY = os.getenv("OPENAI_API_KEY")
 # Fail fast if calls hang — override via OPENAI_TIMEOUT_SECONDS if needed
 OPENAI_TIMEOUT = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "15"))
 
-client = OpenAI(api_key=API_KEY, timeout=OPENAI_TIMEOUT) if API_KEY else None
+client = OpenAI(
+    api_key=API_KEY,
+    timeout=OPENAI_TIMEOUT,
+    max_retries=0,
+) if API_KEY else None
 
 # Prefer a reliable JSON-capable model; allow override via env.
 PREFERRED_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -44,6 +53,8 @@ Current preventive regime:
 PHASE 2 – INVESTIGATIONS, DIAGNOSES & RISK ASSESSMENT
 Selected tests:
 {session_data.get('selected_tests', [])}
+Test truths (for marking only):
+{session_data.get('truth_test_results', [])}
 
 Radiograph report:
 {session_data.get('radiograph_report', '')}
@@ -212,6 +223,24 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
         }
         return zero_feedback, zero_scores, 0.0
 
+    # Load case payload and marker view of tests for ground truth comparison
+    case_payload = None
+    truth_test_results = []
+    db = SessionLocal()
+    try:
+        case_obj = db.query(Case).get(session.case_id)
+        if case_obj:
+            try:
+                case_payload = load_case(case_obj.case_code)
+                _, truth_test_results = build_test_results(case_payload, session.selected_tests or [], audience="marker")
+            except FileNotFoundError:
+                case_payload = None
+    finally:
+        db.close()
+
+    if truth_test_results:
+        data["truth_test_results"] = truth_test_results
+
     prompt = build_feedback_prompt(data)
 
     def _try_json_call(model: str, max_tokens: int):
@@ -221,7 +250,6 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
             max_completion_tokens=max_tokens,
             temperature=0.2,
             response_format={"type": "json_object"},
-            timeout=OPENAI_TIMEOUT,
         )
 
     def _extract_content(resp):

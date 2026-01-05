@@ -14,53 +14,58 @@
   {% endif %}
 </p>
 
-{% if session.feedback_json %}
-  <hr class="my-4">
-
-  <h2 class="h4 mb-3">Supervisor Feedback</h2>
-
-  <div class="mb-3">
-    <h3 class="h5">History & information</h3>
-    <p><strong>Score:</strong>
-      {{ session.section_scores_json["history_and_information"] if session.section_scores_json and "history_and_information" in session.section_scores_json else "N/A" }}/10
-    </p>
-    <p>{{ session.feedback_json["history_and_information"] if session.feedback_json and "history_and_information" in session.feedback_json else "No feedback." }}</p>
-  </div>
-
-  <div class="mb-3">
-    <h3 class="h5">Investigations & diagnosis</h3>
-    <p><strong>Score:</strong>
-      {{ session.section_scores_json["investigations_and_diagnosis"] if session.section_scores_json and "investigations_and_diagnosis" in session.section_scores_json else "N/A" }}/10
-    </p>
-    <p>{{ session.feedback_json["investigations_and_diagnosis"] if session.feedback_json and "investigations_and_diagnosis" in session.feedback_json else "No feedback." }}</p>
-  </div>
-
-  <div class="mb-3">
-    <h3 class="h5">Planning & consent</h3>
-    <p><strong>Score:</strong>
-      {{ session.section_scores_json["planning_and_consent"] if session.section_scores_json and "planning_and_consent" in session.section_scores_json else "N/A" }}/10
-    </p>
-    <p>{{ session.feedback_json["planning_and_consent"] if session.feedback_json and "planning_and_consent" in session.feedback_json else "No feedback." }}</p>
-  </div>
-
-  <div class="mb-3">
-    <h3 class="h5">Overall summary</h3>
-    <p>{{ session.feedback_json["overall_summary"] if session.feedback_json and "overall_summary" in session.feedback_json else "No overall summary." }}</p>
-  </div>
-{% else %}
-  <p class="text-muted">
-    AI feedback is not available for this session.
-  </p>
-
-  <form method="post" action="{{ url_for('oral.generate_feedback', session_id=session.id) }}">
-    <button type="submit" class="btn btn-primary">
+<div id="feedback-container" class="mt-3">
+  {% if session.feedback_json %}
+    {% include "oral/_feedback_block.html" %}
+  {% else %}
+    <div class="alert alert-info" role="alert">
+      Feedback has not been generated yet for this submission.
+    </div>
+    <button id="generate-feedback-btn" class="btn btn-primary" type="button">
       Generate Supervisor Feedback
     </button>
-  </form>
-{% endif %}
+    <div id="gen-status" class="mt-2 text-muted" style="display:none;">
+      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+      <span class="ml-2">Generating feedback…</span>
+    </div>
+  {% endif %}
+</div>
 
 <a href="{{ url_for('oral.list_cases') }}" class="btn btn-secondary mt-3">
   Back to cases
 </a>
+
+<script>
+  (function () {
+    const btn = document.getElementById("generate-feedback-btn");
+    const status = document.getElementById("gen-status");
+    const container = document.getElementById("feedback-container");
+    if (!btn || !container) return;
+
+    btn.addEventListener("click", async function () {
+      btn.disabled = true;
+      if (status) status.style.display = "block";
+      try {
+        const resp = await fetch("{{ url_for('oral.generate_feedback', session_id=session.id) }}", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": (document.querySelector('meta[name=\"csrf-token\"]') || {}).content || ""
+          }
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.ok) {
+          container.innerHTML = `<div class="alert alert-danger">${data.error || "Failed to generate feedback."}</div>`;
+        } else {
+          container.innerHTML = data.feedback_html || `<div class="alert alert-success">Feedback generated.</div>`;
+        }
+      } catch (e) {
+        container.innerHTML = `<div class="alert alert-danger">Network error while generating feedback.</div>`;
+      } finally {
+        if (status) status.style.display = "none";
+        btn.disabled = false;
+      }
+    });
+  })();
+</script>
 
 {% endblock %}
