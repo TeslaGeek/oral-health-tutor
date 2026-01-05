@@ -2,7 +2,11 @@ import os
 import json
 from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+API_KEY = os.getenv("OPENAI_API_KEY")
+# Fail fast if calls hang — override via OPENAI_TIMEOUT_SECONDS if needed
+OPENAI_TIMEOUT = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "15"))
+
+client = OpenAI(api_key=API_KEY, timeout=OPENAI_TIMEOUT) if API_KEY else None
 
 # Prefer a reliable JSON-capable model; allow override via env.
 PREFERRED_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -176,6 +180,22 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
         _has_text(v) for k, v in data.items() if k != "selected_tests"
     ) or bool(data.get("selected_tests"))
 
+    # If no API key, bail out gracefully instead of hanging the worker
+    if not client:
+        fallback_feedback = {
+            "history_and_information": "No AI feedback: OPENAI_API_KEY is not configured.",
+            "investigations_and_diagnosis": "No AI feedback: OPENAI_API_KEY is not configured.",
+            "planning_and_consent": "No AI feedback: OPENAI_API_KEY is not configured.",
+            "overall_summary": "AI feedback unavailable (missing API key).",
+        }
+        fallback_scores = {
+            "history_and_information": 0,
+            "investigations_and_diagnosis": 0,
+            "planning_and_consent": 0,
+            "overall": 0,
+        }
+        return fallback_feedback, fallback_scores, 0.0
+
     # If nothing was provided, short-circuit with zero scores.
     if not any_content:
         zero_feedback = {
@@ -201,6 +221,7 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
             max_completion_tokens=max_tokens,
             temperature=0.2,
             response_format={"type": "json_object"},
+            timeout=OPENAI_TIMEOUT,
         )
 
     def _extract_content(resp):
