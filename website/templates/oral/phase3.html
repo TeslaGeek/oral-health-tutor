@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="mb-4">Phase 3 – Planning & Consent</h1>
+<h1 class="mb-4">Planning & Consent</h1>
 
 <div class="row">
   <div class="col-lg-5" style="background-color:#f9f9f9; box-shadow:0 2px 4px rgba(0,0,0,0.2); border-radius:10px;">
@@ -110,5 +110,33 @@
     </form>
   </div>
 </div>
+
+<div id="phase3-submit-overlay"
+     style="display:none; position:fixed; inset:0; z-index:3000; background-color: rgba(255, 255, 255, 0.85); align-items:center; justify-content:center; flex-direction:column; text-align:center;">
+  <div class="spinner"></div>
+  <p class="mb-1 text-muted">Your feedback is being prepared...</p>
+  <p class="text-muted">This may take a couple of minutes. Thank you for your patience.</p>
+</div>
+
+<script>
+  (function () {
+    const form = document.querySelector('form');
+    const overlay = document.getElementById('phase3-submit-overlay');
+    if (!form || !overlay) return;
+
+    form.addEventListener('submit', function (e) {
+      if (form.dataset.submitting === "true") return;
+      e.preventDefault();
+      form.dataset.submitting = "true";
+      overlay.style.display = 'flex';
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      // Give the browser a moment to paint the overlay before navigating
+      requestAnimationFrame(() => {
+        setTimeout(() => form.submit(), 30);
+      });
+    });
+  })();
+</script>
 
 {% endblock %}

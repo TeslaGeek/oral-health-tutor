@@ -140,6 +140,38 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
     def _has_text(val):
         return isinstance(val, str) and val.strip()
 
+    # Simple per-section presence checks to avoid hallucinated positive feedback
+    history_present = any(
+        _has_text(data.get(k))
+        for k in (
+            "hpc_notes",
+            "medical_history_notes",
+            "expectations_notes",
+            "social_history_notes",
+            "diet_notes",
+            "preventive_regime_notes",
+        )
+    )
+    investigations_present = any(
+        _has_text(data.get(k))
+        for k in (
+            "radiograph_report",
+            "investigation_notes",
+            "diagnoses",
+            "risk_assessment",
+        )
+    ) or bool(data.get("selected_tests"))
+    planning_present = any(
+        _has_text(data.get(k))
+        for k in (
+            "prevention_plan",
+            "rehab_options",
+            "operative_options",
+            "patient_preferences",
+            "final_plan_and_consent_notes",
+        )
+    )
+
     any_content = any(
         _has_text(v) for k, v in data.items() if k != "selected_tests"
     ) or bool(data.get("selected_tests"))
@@ -238,11 +270,49 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
     scores = parsed.get("scores", {})
     overall = scores.get("overall", None)
 
-    # Ensure overall is a float if present
-    if overall is not None:
-        try:
-            overall = float(overall)
-        except (TypeError, ValueError):
-            overall = None
+    # Override sections that were left blank to avoid optimistic feedback
+    def override_section(key: str, text: str, score_val: int):
+        feedback[key] = text
+        scores[key] = score_val
+
+    if not history_present:
+        override_section(
+            "history_and_information",
+            "No history or information was provided. Please complete Phase 1 fields.",
+            0,
+        )
+
+    if not investigations_present:
+        override_section(
+            "investigations_and_diagnosis",
+            "No investigations, reports, diagnoses, or risk assessment were provided.",
+            0,
+        )
+    elif data.get("selected_tests") and not any(
+        _has_text(data.get(k))
+        for k in ("radiograph_report", "investigation_notes", "diagnoses", "risk_assessment")
+    ):
+        override_section(
+            "investigations_and_diagnosis",
+            "Tests were selected, but no radiograph report, investigation notes, diagnoses, or risk assessment were documented. Please record your findings.",
+            1,
+        )
+
+    if not planning_present:
+        override_section(
+            "planning_and_consent",
+            "No planning, options, preferences, or consent notes were provided.",
+            0,
+        )
+
+    # Recompute overall as the mean of the three section scores (if present), else 0
+    section_keys = ("history_and_information", "investigations_and_diagnosis", "planning_and_consent")
+    section_scores = [
+        scores[k] for k in section_keys if isinstance(scores.get(k), (int, float))
+    ]
+    if section_scores:
+        overall = sum(section_scores) / len(section_scores)
+    else:
+        overall = 0.0
 
     return feedback, scores, overall

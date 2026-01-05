@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="mb-4">Phase 2 – Investigations & Diagnosis</h1>
+<h1 class="mb-4">Investigations & Diagnosis</h1>
 
 <div class="row">
   <div class="col-lg-5" style="background-color:#f9f9f9; box-shadow:0 2px 4px rgba(0,0,0,0.2); border-radius:10px;">
@@ -58,7 +58,11 @@
           {% if test_options %}
             {% for test in test_options %}
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="selected_tests" value="{{ test.code }}"
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="selected_tests"
+                       value="{{ test.code }}"
+                       data-type="{{ test.type }}"
                        {% if session.selected_tests and test.code in session.selected_tests %}checked{% endif %}>
                 <label class="form-check-label">
                   {{ test.name }}
@@ -100,28 +104,23 @@
             </ul>
           {% endif %}
           <div class="mt-3">
-            <label class="form-label">Investigation notes</label>
+            <label class="form-label">Justification for investigations</label>
             <textarea name="investigation_notes" class="form-control" rows="3">{{ session.investigation_notes or "" }}</textarea>
           </div>
         </div>
       </div>
 
-      {% set selected_radiograph_available = false %}
-      {% if test_results %}
-        {% for r in test_results %}
-          {% if r.type == "radiograph" and r.available %}
-            {% set selected_radiograph_available = true %}
-          {% endif %}
-        {% endfor %}
-      {% endif %}
-
-      {% if selected_radiograph_available %}
-        <div class="mb-3">
-          <label class="form-label">Radiograph report</label>
-          <textarea name="radiograph_report" class="form-control" rows="3">{{ session.radiograph_report or "" }}</textarea>
-          <small class="text-muted">Comment on image quality, caries/bone levels/restorations, and any limitations.</small>
-        </div>
-      {% endif %}
+      <div id="radiograph-report-wrapper"
+           class="mb-3 {% if session.selected_tests and 'RAD_BW' in session.selected_tests %}d-block{% else %}d-none{% endif %}">
+        <label class="form-label">Radiograph report</label>
+        <textarea name="radiograph_report"
+                  class="form-control"
+                  rows="4"
+                  placeholder="Write your interpretation of the bitewing radiographs here...">{{ session.radiograph_report or "" }}</textarea>
+        <small class="text-muted">
+          Comment on image quality, caries, restorations, bone levels and any limitations.
+        </small>
+      </div>
 
       <div class="card mb-3">
         <div class="card-body">
@@ -151,5 +150,29 @@
     </form>
   </div>
 </div>
+
+<script>
+  (function () {
+    const wrapper = document.getElementById("radiograph-report-wrapper");
+    if (!wrapper) return;
+
+    function updateRadiographReportVisibility() {
+      const checks = document.querySelectorAll('input[name="selected_tests"][data-type="radiograph"]');
+      const anyRadiographChecked = Array.from(checks).some(cb => cb.checked);
+      wrapper.classList.toggle("d-none", !anyRadiographChecked);
+      wrapper.classList.toggle("d-block", anyRadiographChecked);
+    }
+
+    document.addEventListener("change", function (e) {
+      const t = e.target;
+      if (t && t.matches('input[name="selected_tests"]')) {
+        updateRadiographReportVisibility();
+      }
+    });
+
+    // Initial run on page load
+    updateRadiographReportVisibility();
+  })();
+</script>
 
 {% endblock %}
