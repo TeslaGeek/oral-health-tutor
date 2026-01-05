@@ -229,22 +229,6 @@ def phase3(session_id: int):
             sess.completed_at = datetime.utcnow()
             sess.status = SessionStatus.SUBMITTED
 
-            # Commit Phase 3 data first so it's all in the DB
-            db.commit()
-
-            # 🔮 Generate AI feedback
-            try:
-                feedback, scores, overall = generate_feedback_for_session(sess)
-                sess.feedback_json = feedback
-                sess.section_scores_json = scores
-                if overall is not None:
-                    sess.overall_score = overall
-                sess.status = SessionStatus.MARKED
-            except Exception as e:
-                # If something goes wrong, keep the session as submitted but without feedback
-                print("Error generating AI feedback:", e)
-                sess.status = SessionStatus.SUBMITTED
-
             db.commit()
             return redirect(url_for("oral.completed", session_id=session_id))
     finally:
@@ -289,6 +273,30 @@ def completed(session_id: int):
     )
 
 
+@oral_bp.route("/session/<int:session_id>/generate-feedback", methods=["POST"])
+def generate_feedback(session_id: int):
+    db = SessionLocal()
+    try:
+        sess = db.query(Session).get(session_id)
+        if not sess:
+            return jsonify({"ok": False, "error": "Session not found"}), 404
+
+        try:
+            feedback, scores, overall = generate_feedback_for_session(sess)
+            sess.feedback_json = feedback
+            sess.section_scores_json = scores
+            if overall is not None:
+                sess.overall_score = overall
+            sess.status = SessionStatus.MARKED
+            db.commit()
+            return jsonify({"ok": True})
+        except Exception as e:
+            current_app.logger.exception("Error generating AI feedback")
+            return jsonify({"ok": False, "error": str(e)}), 500
+    finally:
+        db.close()
+
+
 @oral_bp.route("/session/<int:session_id>/chat", methods=["POST"])
 def chat(session_id: int):
     db = SessionLocal()
@@ -300,6 +308,7 @@ def chat(session_id: int):
         payload = request.get_json(silent=True) or {}
         user_msg = (payload.get("message") or "").strip()
         phase = int(payload.get("phase") or 1)
+        source = payload.get("source", "text")
 
         if not user_msg:
             return jsonify({"ok": False, "error": "Empty message"}), 400
@@ -323,6 +332,7 @@ def chat(session_id: int):
             "role": "user",
             "content": user_msg,
             "phase": phase,
+            "source": source,
             "ts": datetime.utcnow().isoformat()
         })
 
@@ -333,6 +343,7 @@ def chat(session_id: int):
             "role": "assistant",
             "content": reply,
             "phase": phase,
+            "source": "assistant",
             "ts": datetime.utcnow().isoformat()
         })
 

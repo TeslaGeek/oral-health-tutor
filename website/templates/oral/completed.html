@@ -51,6 +51,12 @@
   <p class="text-muted">
     AI feedback is not available for this session.
   </p>
+
+  <form method="post" action="{{ url_for('oral.generate_feedback', session_id=session.id) }}">
+    <button type="submit" class="btn btn-primary">
+      Generate Supervisor Feedback
+    </button>
+  </form>
 {% endif %}
 
 <a href="{{ url_for('oral.list_cases') }}" class="btn btn-secondary mt-3">
