@@ -940,3 +940,45 @@ textarea {
 .voice-line-user {
   color: #004085;
 }
+
+.bpe-wrapper {
+  max-width: 360px;
+}
+
+.bpe-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.bpe-label {
+  width: 50px;
+  font-weight: 600;
+  color: #555;
+}
+
+.bpe-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.bpe-cell {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 0;
+  text-align: center;
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+@keyframes softPulse {
+  0% { box-shadow: 0 0 0 rgba(0,0,0,0); }
+  50% { box-shadow: 0 0 0.75rem rgba(13, 110, 253, 0.35); }
+  100% { box-shadow: 0 0 0 rgba(0,0,0,0); }
+}
+
+.soft-pulse {
+  animation: softPulse 1.2s ease-in-out 2;
+  border-radius: 0.5rem;
+}

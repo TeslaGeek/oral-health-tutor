@@ -11,44 +11,7 @@
   </div>
 
   <div class="col-lg-7" style="box-shadow:3px 3px 30px #dbdbdb; border-radius:10px; padding:16px;">
-    <form method="post">
-
-      {% if case_payload and case_payload.baseline_findings %}
-        <div class="card mb-3">
-          <div class="card-body">
-            <h5 class="card-title mb-2">Baseline findings available</h5>
-
-            {% if case_payload.baseline_findings.hard_tissue_notes %}
-              <div class="mb-2">
-                <strong>Hard tissue:</strong>
-                <ul class="mb-2">
-                  {% for item in case_payload.baseline_findings.hard_tissue_notes %}
-                    <li>{{ item }}</li>
-                  {% endfor %}
-                </ul>
-              </div>
-            {% endif %}
-
-            {% if case_payload.baseline_findings.bpe_codes %}
-              <div class="mb-2">
-                <strong>BPE:</strong> {{ case_payload.baseline_findings.bpe_codes | join(", ") }}
-              </div>
-            {% endif %}
-
-            {% if case_payload.baseline_findings.extra_oral %}
-              <div class="mb-2">
-                <strong>Extra-oral:</strong> {{ case_payload.baseline_findings.extra_oral }}
-              </div>
-            {% endif %}
-
-            {% if case_payload.baseline_findings.intra_oral %}
-              <div class="mb-0">
-                <strong>Intra-oral:</strong> {{ case_payload.baseline_findings.intra_oral }}
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      {% endif %}
+    <form id="investigations-form" method="post">
 
       <div class="card mb-3">
         <div class="card-body">
@@ -76,33 +39,9 @@
             <p class="text-warning mb-0">No tests available for this case.</p>
           {% endif %}
 
-          {% if test_results %}
-            <hr>
-            <h6 class="mb-2">Results</h6>
-            <ul class="list-unstyled mb-0">
-              {% for result in test_results %}
-                <li class="mb-3">
-                  <strong>{{ result.name or result.code }}</strong>
-                  {% if result.type %}
-                    <small class="text-muted">({{ result.type.replace('_', ' ') }})</small>
-                  {% endif %}
-                  <br>
-
-                  {% if result.available %}
-                    {{ result.result_text }}
-                  {% else %}
-                    <span class="text-warning">{{ result.result_text }}</span>
-                  {% endif %}
-
-                  {% if result.image_url %}
-                    <div class="mt-2">
-                      <img src="{{ result.image_url }}" alt="{{ result.name }}" class="img-fluid rounded border">
-                    </div>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
+          <div id="test-results-container">
+            {% include "oral/_test_results.html" %}
+          </div>
           <div class="mt-3">
             <label class="form-label">Justification for investigations</label>
             <textarea name="investigation_notes" class="form-control" rows="3">{{ session.investigation_notes or "" }}</textarea>
@@ -125,7 +64,7 @@
       <div class="card mb-3">
         <div class="card-body">
           <h5 class="card-title mb-2">Clinical reasoning</h5>
-          <p class="text-muted mb-3">Based on the history, baseline findings, and investigations.</p>
+          <p class="text-muted mb-3">Based on the history and investigations.</p>
 
           <div class="mb-3">
             <label class="form-label">Diagnosis</label>
@@ -141,10 +80,10 @@
         </div>
       </div>
 
-      <button class="btn btn-secondary mr-2" name="action" value="save">Save investigations</button>
+      <button class="btn btn-secondary mr-2" name="action" value="save">Save notes</button>
       <button class="btn btn-primary" name="action" value="continue">Save & continue to Phase 3</button>
       <div class="text-muted mt-2" style="font-size: 0.9rem;">
-        Tip: Use “Save investigations” to order tests and review results before continuing.
+        Tip: Use “Save notes” to keep your justification and report in progress.
       </div>
 
     </form>
@@ -152,27 +91,8 @@
 </div>
 
 <script>
-  (function () {
-    const wrapper = document.getElementById("radiograph-report-wrapper");
-    if (!wrapper) return;
-
-    function updateRadiographReportVisibility() {
-      const checks = document.querySelectorAll('input[name="selected_tests"][data-type="radiograph"]');
-      const anyRadiographChecked = Array.from(checks).some(cb => cb.checked);
-      wrapper.classList.toggle("d-none", !anyRadiographChecked);
-      wrapper.classList.toggle("d-block", anyRadiographChecked);
-    }
-
-    document.addEventListener("change", function (e) {
-      const t = e.target;
-      if (t && t.matches('input[name="selected_tests"]')) {
-        updateRadiographReportVisibility();
-      }
-    });
-
-    // Initial run on page load
-    updateRadiographReportVisibility();
-  })();
+  window.ORAL_PREVIEW_TESTS_URL = "{{ url_for('oral.preview_tests', session_id=session.id) }}";
 </script>
+<script src="{{ url_for('static', filename='oral_phase2_preview.js') }}"></script>
 
 {% endblock %}

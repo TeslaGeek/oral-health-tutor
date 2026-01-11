@@ -1,0 +1,40 @@
+{% if test_results %}
+  <hr>
+  <h6 class="mb-2">Results</h6>
+  <ul class="list-unstyled mb-0">
+    {% for result in test_results %}
+      <li class="mb-3">
+        <strong>{{ result.name or result.code }}</strong>
+        {% if result.type %}
+          <small class="text-muted">({{ result.type.replace('_', ' ') }})</small>
+        {% endif %}
+        <br>
+
+        {% if result.available %}
+          {% if result.result_html %}
+            {{ result.result_html | safe }}
+          {% elif result.key_findings %}
+            <div class="mt-2">
+              <div class="text-muted">Key findings:</div>
+              <ul class="mb-2">
+                {% for item in result.key_findings %}
+                  <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% elif result.result_text %}
+            {{ result.result_text }}
+          {% endif %}
+        {% elif result.result_text %}
+          <span class="text-warning">{{ result.result_text }}</span>
+        {% endif %}
+
+        {% if result.image_url %}
+          <div class="mt-2">
+            <img src="{{ result.image_url }}" alt="{{ result.name }}" class="img-fluid rounded border">
+          </div>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

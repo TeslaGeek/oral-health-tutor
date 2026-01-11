@@ -20,7 +20,10 @@ def build_test_results(case_payload: dict, selected_tests: list, *, audience: st
         image_url = avail.get("image_url")
 
         if audience == "student":
+            result_text = None
+            result_html = None
             if test_type == "radiograph":
+                key_findings = []
                 if available_flag:
                     if image_url:
                         result_text = "Radiograph image available below. Please write your radiograph report."
@@ -29,8 +32,38 @@ def build_test_results(case_payload: dict, selected_tests: list, *, audience: st
                 else:
                     result_text = avail.get("reason") or "Radiograph not available for this case."
             else:
+                key_findings = avail.get("key_findings") or []
                 if available_flag:
-                    result_text = "Results available for this test."
+                    if code == "BPE" and key_findings:
+                        upper_codes = []
+                        lower_codes = []
+                        for line in key_findings:
+                            if not isinstance(line, str):
+                                continue
+                            if line.lower().startswith("upper"):
+                                upper_codes = line.split(":", 1)[-1].strip().split()
+                            elif line.lower().startswith("lower"):
+                                lower_codes = line.split(":", 1)[-1].strip().split()
+
+                        def bpe_row(label: str, codes: list) -> str:
+                            cells = "".join(
+                                f"<div class='bpe-cell'>{code}</div>" for code in codes
+                            )
+                            return (
+                                "<div class='bpe-row'>"
+                                f"<div class='bpe-label'>{label}</div>"
+                                f"<div class='bpe-grid'>{cells}</div>"
+                                "</div>"
+                            )
+
+                        result_html = (
+                            "<div class='bpe-wrapper mt-2'>"
+                            f"{bpe_row('Upper', upper_codes)}"
+                            f"{bpe_row('Lower', lower_codes)}"
+                            "</div>"
+                        )
+                    elif not key_findings:
+                        result_text = "Results available for this test."
                 else:
                     result_text = avail.get("reason") or "Results not available for this test."
 
@@ -41,7 +74,9 @@ def build_test_results(case_payload: dict, selected_tests: list, *, audience: st
                     "type": test_type,
                     "available": available_flag,
                     "result_text": result_text,
+                    "result_html": result_html,
                     "image_url": image_url,
+                    "key_findings": key_findings,
                 }
             )
             continue

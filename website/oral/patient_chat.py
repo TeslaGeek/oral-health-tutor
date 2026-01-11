@@ -5,6 +5,8 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+PATIENT_TONE = os.getenv("ORAL_PATIENT_TONE", "a Scottish female patient in her late 30s")
+PATIENT_PRONUNCIATION = os.getenv("ORAL_PATIENT_PRONUNCIATION", "Scottish")
 
 
 # ---------- helpers ----------
@@ -78,6 +80,8 @@ IDENTITY
 
 TONE / STYLE
 - {style}
+- Tone: {PATIENT_TONE}
+- Pronunciation: {PATIENT_PRONUNCIATION}
 - Sound like a normal patient, not a clinician or an exam marking scheme.
 - Do NOT use markdown, headings, bullet points, or labelled sections (e.g. no "Triggers:", no "**bold**").
 

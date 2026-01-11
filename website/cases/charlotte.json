@@ -89,6 +89,8 @@
 
   "tests_catalogue": {
     "options": [
+      { "code": "CHART", "name": "Tooth chart (charting)", "type": "chart" },
+      { "code": "BPE", "name": "Basic Periodontal Examination (BPE)", "type": "periodontal" },
       { "code": "RAD_BW", "name": "Radiograph – bitewing", "type": "radiograph" },
       { "code": "RAD_PA", "name": "Radiograph – periapical", "type": "radiograph" },
       { "code": "RAD_OPG", "name": "Radiograph – OPG", "type": "radiograph" },
@@ -99,9 +101,25 @@
     ],
     "recommended_for_case": ["RAD_BW"],
     "availability": {
+      "CHART": {
+        "available": true,
+        "image_url": "/static/images/charlotte_tooth_chart.png",
+        "key_findings": [
+          "LR4: enamel fracture on the lingual aspect",
+          "LR5: shadowed occlusal lesion (non-cavitated)",
+          "LL6: occlusal composite appears sound"
+        ]
+      },
+      "BPE": {
+        "available": true,
+        "key_findings": [
+          "Upper: 1 1 1",
+          "Lower: 2 2 2"
+        ]
+      },
       "RAD_BW": {
         "available": true,
-        "image_url": null,
+        "image_url": "/static/images/radiograph.png",
         "gold_report": [
           "Quality unacceptable (first premolars missed)",
           "Horizontal bone levels normal – high",
