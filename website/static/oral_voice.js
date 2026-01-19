@@ -1,7 +1,23 @@
 (function () {
+  if (window.__ORAL_VOICE_INITED) return;
+  window.__ORAL_VOICE_INITED = true;
+
+  function onReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      fn();
+    }
+  }
+
+  const cfg = (window.getOralConfig && window.getOralConfig()) || {};
+  const ttsEndpoint = cfg.ttsEndpoint || window.ORAL_TTS_ENDPOINT;
+
   let mode = "text";
   let recognition = null;
   let listening = false;
+  let stopTimer = null;
+  let lastTranscript = "";
 
   function setMode(newMode) {
     mode = newMode;
@@ -14,8 +30,12 @@
     const textBtn = document.getElementById("mode-text");
     const voiceBtn = document.getElementById("mode-voice");
     if (textBtn && voiceBtn) {
-      textBtn.className = mode === "text" ? "btn btn-primary btn-sm" : "btn btn-outline-primary btn-sm";
-      voiceBtn.className = mode === "voice" ? "btn btn-primary btn-sm" : "btn btn-outline-primary btn-sm";
+      textBtn.className = mode === "text"
+        ? "btn btn-primary btn-sm oral-toggle"
+        : "btn btn-outline-dark btn-sm oral-toggle";
+      voiceBtn.className = mode === "voice"
+        ? "btn btn-primary btn-sm oral-toggle"
+        : "btn btn-outline-dark btn-sm oral-toggle";
     }
 
     const micBtn = document.getElementById("voice-btn");
@@ -36,6 +56,7 @@
 
     const r = new SR();
     r.lang = "en-GB";
+    r.continuous = true;
     r.interimResults = false;
     r.maxAlternatives = 1;
     return r;
@@ -62,14 +83,21 @@
         const transcript = (e.results?.[0]?.[0]?.transcript || "").trim();
         if (!transcript) return;
 
+        lastTranscript = transcript;
         if (status) status.textContent = `Heard: "${transcript}"`;
 
-        listening = false;
-        if (btn) btn.textContent = "🎤 Push to talk";
-
-        await chat.send(transcript, { source: "voice" });
-
-        if (status) status.textContent = "Voice idle";
+        if (stopTimer) {
+          clearTimeout(stopTimer);
+        }
+        stopTimer = setTimeout(async () => {
+          listening = false;
+          if (btn) btn.textContent = "🎤 Push to talk";
+          try { recognition.stop(); } catch (e) {}
+          await chat.send(lastTranscript, { source: "voice" });
+          if (status) status.textContent = "Voice idle";
+          stopTimer = null;
+          lastTranscript = "";
+        }, 2000);
       };
 
       recognition.onerror = (e) => {
@@ -97,14 +125,28 @@
         if (status) status.textContent = "Voice busy — try again.";
       }
     } else {
+      if (stopTimer) {
+        clearTimeout(stopTimer);
+        stopTimer = null;
+        lastTranscript = "";
+      }
       try { recognition.stop(); } catch (e) {}
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  onReady(() => {
     const textBtn = document.getElementById("mode-text");
     const voiceBtn = document.getElementById("mode-voice");
     const micBtn = document.getElementById("voice-btn");
+    const status = document.getElementById("voice-status");
+
+    if (!textBtn || !voiceBtn || !micBtn) return;
+    if (!ttsEndpoint) {
+      voiceBtn.disabled = true;
+      voiceBtn.title = "Voice is unavailable (TTS endpoint not configured).";
+      if (status) status.textContent = "Voice unavailable.";
+      return;
+    }
 
     if (textBtn) textBtn.addEventListener("click", () => setMode("text"));
     if (voiceBtn) voiceBtn.addEventListener("click", () => setMode("voice"));

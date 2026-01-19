@@ -1,0 +1,116 @@
+{% set feedback_key = feedback_key if feedback_key is defined else ("phase" ~ phase ~ "_feedback") %}
+{% set score_key = score_key if score_key is defined else ("phase" ~ phase ~ "_scores") %}
+{% set fb = session.feedback_json.get(feedback_key) if session.feedback_json else None %}
+{% set sc = session.section_scores_json.get(score_key) if session.section_scores_json else None %}
+{% set score = (sc.score if sc and sc.score is not none else None) %}
+{% set title = "Tutor feedback (Phase " ~ phase ~ ")" %}
+{% if feedback_key is defined and "investigations" in feedback_key %}
+  {% set title = "Tutor feedback (Phase 2A - Investigations)" %}
+{% elif feedback_key is defined and "diagnosis" in feedback_key %}
+  {% set title = "Tutor feedback (Phase 2B - Diagnosis & Risk)" %}
+{% endif %}
+{% set _key = (feedback_key if feedback_key is defined else "default") %}
+{% set card_id = ("phase-feedback-card-" ~ phase ~ "-" ~ _key)
+  | replace("_", "-")
+  | replace(" ", "-")
+  | replace("/", "-")
+  | lower
+%}
+
+<div class="card mt-3 oral-feedback-card" id="{{ card_id }}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div>
+        <div class="oral-feedback-title">{{ title }}</div>
+        <div class="text-muted small">Evidence must come from what you wrote in this phase.</div>
+      </div>
+
+      <div class="oral-score-pill rounded">
+        {% if score is not none %}{{ score }}/10{% else %}N/A{% endif %}
+      </div>
+    </div>
+
+    <div class="oral-feedback-grid">
+      <details class="oral-feedback-section" {% if fb and fb.strengths %}open{% endif %}>
+        <summary class="oral-feedback-section-header">Strengths</summary>
+
+        {% if fb and fb.strengths %}
+          <ul class="oral-feedback-list mt-2">
+            {% for item in fb.strengths %}
+              <li class="oral-feedback-item">
+                <div class="oral-feedback-comment">{{ item.comment }}</div>
+
+                {% if item.evidence %}
+                  <div class="oral-feedback-callout">
+                    <span class="oral-feedback-callout-label">Evidence</span>
+                    "{{ item.evidence }}"
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted small mt-2">No strengths evidenced from the student's writing.</div>
+        {% endif %}
+      </details>
+
+      <details class="oral-feedback-section oral-feedback-section--gaps" open>
+        <summary class="oral-feedback-section-header">Gaps</summary>
+
+        {% if fb and fb.gaps %}
+          <ul class="oral-feedback-list mt-2">
+            {% for item in fb.gaps %}
+              <li class="oral-feedback-item">
+                <div class="oral-feedback-comment">{{ item.comment }}</div>
+
+                {% if item.expected %}
+                  <div class="oral-feedback-callout oral-feedback-callout--expected">
+                    <span class="oral-feedback-callout-label">Expected</span>
+                    {{ item.expected }}
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted small mt-2">No gaps noted.</div>
+        {% endif %}
+      </details>
+
+      <details class="oral-feedback-section oral-feedback-section--unsafe" {% if fb and fb.unsafe_or_concerning %}open{% endif %}>
+        <summary class="oral-feedback-section-header">Unsafe or concerning</summary>
+
+        {% if fb and fb.unsafe_or_concerning %}
+          <ul class="oral-feedback-list mt-2">
+            {% for item in fb.unsafe_or_concerning %}
+              <li class="oral-feedback-item">
+                <div class="oral-feedback-comment">{{ item.comment }}</div>
+
+                {% if item.evidence %}
+                  <div class="oral-feedback-callout oral-feedback-callout--unsafe">
+                    <span class="oral-feedback-callout-label">Evidence</span>
+                    "{{ item.evidence }}"
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted small mt-2">No concerns noted.</div>
+        {% endif %}
+      </details>
+    </div>
+
+    <div class="oral-summary mt-3">
+      <div class="oral-summary-title">Summary</div>
+      <div>{{ fb.summary if fb and fb.summary else "No summary." }}</div>
+    </div>
+
+    {% if phase == 1 and fb %}
+      <div class="oral-refine-note mt-3">
+        You can return to this phase and refine your notes.
+        As in clinical practice, it is expected that information gathering improves as the conversation continues.
+      </div>
+    {% endif %}
+  </div>
+</div>

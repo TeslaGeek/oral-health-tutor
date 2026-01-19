@@ -8,7 +8,7 @@
 </p>
 
 <div class="row">
-  <div class="col-lg-5" style="background-color:#f9f9f9; box-shadow:0 2px 4px rgba(0,0,0,0.2); border-radius:10px;">
+  <div class="col-lg-5 oral-left-sticky" style="background-color:#f9f9f9; box-shadow:0 2px 4px rgba(0,0,0,0.2); border-radius:10px;">
     {% set chat_post_url = url_for('oral.chat', session_id=session.id) %}
     {% set current_phase = 1 %}
     {% include "oral/_left_panel.html" %}
@@ -20,49 +20,77 @@
         <label for="hpc_notes" class="form-label">
           History of presenting complaint
         </label>
-        <textarea id="hpc_notes" name="hpc_notes" class="form-control" rows="3">{{ session.hpc_notes or "" }}</textarea>
+        <textarea id="hpc_notes" name="hpc_notes" class="form-control" rows="3" placeholder="e.g. Why has the patient attended today? Onset, duration, symptoms, pain, triggers.">{{ session.hpc_notes or "" }}</textarea>
       </div>
 
       <div class="mb-3">
         <label for="medical_history_notes" class="form-label">
           Medical history
         </label>
-        <textarea id="medical_history_notes" name="medical_history_notes" class="form-control" rows="3">{{ session.medical_history_notes or "" }}</textarea>
+        <textarea id="medical_history_notes" name="medical_history_notes" class="form-control" rows="3" placeholder="e.g. Relevant conditions, medications, allergies, smoking status.">{{ session.medical_history_notes or "" }}</textarea>
       </div>
 
       <div class="mb-3">
         <label for="expectations_notes" class="form-label">
           Expectations of treatment and outcome
         </label>
-        <textarea id="expectations_notes" name="expectations_notes" class="form-control" rows="3">{{ session.expectations_notes or "" }}</textarea>
+        <textarea id="expectations_notes" name="expectations_notes" class="form-control" rows="3" placeholder="e.g. What outcome does the patient want? Any concerns or priorities.">{{ session.expectations_notes or "" }}</textarea>
       </div>
 
       <div class="mb-3">
         <label for="social_history_notes" class="form-label">
           Social history
         </label>
-        <textarea id="social_history_notes" name="social_history_notes" class="form-control" rows="3">{{ session.social_history_notes or "" }}</textarea>
+        <textarea id="social_history_notes" name="social_history_notes" class="form-control" rows="3" placeholder="e.g. Occupation, living situation, support, alcohol/drug use.">{{ session.social_history_notes or "" }}</textarea>
       </div>
 
       <div class="mb-3">
         <label for="diet_notes" class="form-label">
           Dietary habits
         </label>
-        <textarea id="diet_notes" name="diet_notes" class="form-control" rows="3">{{ session.diet_notes or "" }}</textarea>
+        <textarea id="diet_notes" name="diet_notes" class="form-control" rows="3" placeholder="e.g. Sugar intake, snacking frequency, drinks.">{{ session.diet_notes or "" }}</textarea>
       </div>
 
       <div class="mb-4">
         <label for="preventive_regime_notes" class="form-label">
           Current preventive regime
         </label>
-        <textarea id="preventive_regime_notes" name="preventive_regime_notes" class="form-control" rows="3">{{ session.preventive_regime_notes or "" }}</textarea>
+        <textarea id="preventive_regime_notes" name="preventive_regime_notes" class="form-control" rows="3" placeholder="e.g. Brushing, fluoride use, interdental cleaning, dental attendance.">{{ session.preventive_regime_notes or "" }}</textarea>
       </div>
 
-      <button type="submit" class="btn btn-primary">
-        Save &amp; continue to Phase 2
-      </button>
+      <div class="d-flex align-items-center justify-content-between flex-nowrap">
+        <button type="submit" class="btn btn-primary">
+          Save &amp; continue to Phase 2
+        </button>
+
+        <div class="d-flex align-items-center">
+          <button id="phase-feedback-btn" type="button" class="btn btn-primary text-nowrap" data-label="Check my progress (Phase {{ current_phase }})">
+            Check my progress (Phase {{ current_phase }})
+          </button>
+
+          <div id="phase-feedback-status" class="ml-3 text-muted" style="display:none;">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span class="ml-2">Generating...</span>
+          </div>
+        </div>
+      </div>
     </form>
+
+    <details id="phase-feedback-details" class="mt-3">
+      <summary class="text-muted">Tutor feedback (this phase)</summary>
+      <div id="phase-feedback-container" class="mt-2">
+        {% if session.feedback_json and session.feedback_json.get("phase" ~ current_phase ~ "_feedback") %}
+          {% include "oral/_phase_feedback_block.html" %}
+        {% else %}
+          <div class="text-muted small">Feedback appears here when requested.</div>
+        {% endif %}
+      </div>
+    </details>
   </div>
 </div>
 
+<script>
+  window.ORAL_PHASE_FEEDBACK_URL = "{{ url_for('oral.phase_feedback', session_id=session.id, phase=current_phase) }}";
+</script>
+<script src="{{ url_for('static', filename='oral_phase_feedback.js') }}"></script>
 {% endblock %}

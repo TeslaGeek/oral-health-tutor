@@ -5,7 +5,7 @@ from flask import Blueprint, redirect, render_template, request, url_for, jsonif
 from openai import OpenAI
 from sqlalchemy.orm.attributes import flag_modified
 
-from .ai_feedback import generate_feedback_for_session
+from .ai_feedback import generate_feedback_for_session, generate_feedback_for_session_phase
 from .case_loader import load_case
 from .patient_chat import patient_chat_reply
 from .db import SessionLocal
@@ -116,15 +116,21 @@ def phase1(session_id: int):
             except FileNotFoundError:
                 case_payload = None
         if request.method == "POST":
+            save_only = (
+                request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                or request.form.get("save_only") == "1"
+            )
             sess.hpc_notes = request.form.get("hpc_notes")
             sess.medical_history_notes = request.form.get("medical_history_notes")
             sess.expectations_notes = request.form.get("expectations_notes")
             sess.social_history_notes = request.form.get("social_history_notes")
             sess.diet_notes = request.form.get("diet_notes")
             sess.preventive_regime_notes = request.form.get("preventive_regime_notes")
-            if not sess.phase1_completed_at:
+            if not save_only and not sess.phase1_completed_at:
                 sess.phase1_completed_at = datetime.utcnow()
             db.commit()
+            if save_only:
+                return jsonify({"ok": True})
             return redirect(url_for("oral.phase2", session_id=session_id))
     finally:
         db.close()
@@ -160,16 +166,22 @@ def phase2(session_id: int):
             except FileNotFoundError:
                 case_payload = None
         if request.method == "POST":
+            save_only = (
+                request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                or request.form.get("save_only") == "1"
+            )
             sess.selected_tests = request.form.getlist("selected_tests")
             if "radiograph_report" in request.form:
                 sess.radiograph_report = request.form.get("radiograph_report")
             sess.investigation_notes = request.form.get("investigation_notes")
             sess.diagnoses = request.form.get("diagnoses")
             sess.risk_assessment = request.form.get("risk_assessment")
-            if not sess.phase2_completed_at:
+            if not save_only and not sess.phase2_completed_at:
                 sess.phase2_completed_at = datetime.utcnow()
             action = request.form.get("action", "continue")
             db.commit()
+            if save_only:
+                return jsonify({"ok": True})
             if action == "save":
                 return redirect(url_for("oral.phase2", session_id=session_id))
             return redirect(url_for("oral.phase3", session_id=session_id))
@@ -209,16 +221,24 @@ def phase3(session_id: int):
             except FileNotFoundError:
                 case_payload = None
         if request.method == "POST":
+            save_only = (
+                request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                or request.form.get("save_only") == "1"
+            )
             sess.prevention_plan = request.form.get("prevention_plan")
             sess.rehab_options = request.form.get("rehab_options")
             sess.operative_options = request.form.get("operative_options")
             sess.patient_preferences = request.form.get("patient_preferences")
             sess.final_plan_and_consent_notes = request.form.get("final_plan_and_consent_notes")
 
-            if not sess.phase3_completed_at:
-                sess.phase3_completed_at = datetime.utcnow()
-            sess.completed_at = datetime.utcnow()
-            sess.status = SessionStatus.SUBMITTED
+            if not save_only:
+                if not sess.phase3_completed_at:
+                    sess.phase3_completed_at = datetime.utcnow()
+                sess.completed_at = datetime.utcnow()
+                sess.status = SessionStatus.SUBMITTED
+            db.commit()
+            if save_only:
+                return jsonify({"ok": True})
 
             # Generate feedback synchronously unless disabled
             if os.getenv("DISABLE_AI_FEEDBACK") == "1":
@@ -312,6 +332,68 @@ def generate_feedback(session_id: int):
             current_app.logger.exception("Error generating AI feedback")
             sess.status = SessionStatus.SUBMITTED
             db.commit()
+            return jsonify({"ok": False, "error": str(e)}), 500
+    finally:
+        db.close()
+
+
+@oral_bp.route("/session/<int:session_id>/phase-feedback/<int:phase>", methods=["POST"])
+def phase_feedback(session_id: int, phase: int):
+    if phase not in (1, 2, 3):
+        return jsonify({"ok": False, "error": "Invalid phase"}), 400
+
+    db = SessionLocal()
+    try:
+        sess = db.query(Session).get(session_id)
+        if not sess:
+            return jsonify({"ok": False, "error": "Session not found"}), 404
+
+        if os.getenv("DISABLE_AI_FEEDBACK") == "1":
+            return jsonify({"ok": False, "error": "AI feedback disabled"}), 503
+
+        try:
+            payload = request.get_json(silent=True) or {}
+            scope = payload.get("scope")
+            scope_key = None
+            if phase == 2 and scope in ("investigations", "diagnosis"):
+                scope_key = scope
+
+            feedback_key = f"phase{phase}_feedback" if not scope_key else f"phase{phase}_{scope_key}_feedback"
+            score_key = f"phase{phase}_scores" if not scope_key else f"phase{phase}_{scope_key}_scores"
+
+            if sess.feedback_json and sess.feedback_json.get(feedback_key):
+                html = render_template(
+                    "oral/_phase_feedback_block.html",
+                    session=sess,
+                    phase=phase,
+                    feedback_key=feedback_key,
+                    score_key=score_key,
+                )
+                return jsonify({"ok": True, "feedback_html": html, "cached": True}), 200
+
+            phase_feedback_data, phase_scores = generate_feedback_for_session_phase(sess, phase, scope=scope_key)
+
+            feedback_json = dict(sess.feedback_json or {})
+            section_scores = dict(sess.section_scores_json or {})
+            feedback_json[feedback_key] = phase_feedback_data
+            section_scores[score_key] = phase_scores
+
+            sess.feedback_json = feedback_json
+            sess.section_scores_json = section_scores
+            flag_modified(sess, "feedback_json")
+            flag_modified(sess, "section_scores_json")
+            db.commit()
+
+            html = render_template(
+                "oral/_phase_feedback_block.html",
+                session=sess,
+                phase=phase,
+                feedback_key=feedback_key,
+                score_key=score_key,
+            )
+            return jsonify({"ok": True, "feedback_html": html}), 200
+        except Exception as e:
+            current_app.logger.exception("Error generating phase feedback")
             return jsonify({"ok": False, "error": str(e)}), 500
     finally:
         db.close()

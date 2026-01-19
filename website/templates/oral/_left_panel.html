@@ -22,8 +22,8 @@
 
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div class="btn-group btn-group-sm">
-        <button id="mode-text" type="button" class="btn btn-primary">Text</button>
-        <button id="mode-voice" type="button" class="btn btn-outline-primary">Voice</button>
+        <button id="mode-text" type="button" class="btn btn-primary oral-toggle">Text</button>
+        <button id="mode-voice" type="button" class="btn btn-outline-dark oral-toggle">Voice</button>
       </div>
 
       <button id="voice-btn"
@@ -65,22 +65,16 @@
   </div>
 </div>
 
-{% if session and session.feedback_json %}
-<div class="card">
-  <div class="card-body">
-    <h5 class="card-title">Supervisor Feedback</h5>
-    <pre class="small mb-0" style="white-space: pre-wrap;">{{ session.feedback_json | tojson(indent=2) }}</pre>
-  </div>
-</div>
-{% endif %}
-
-<script>
-  window.ORAL_CHAT_POST_URL = "{{ chat_post_url }}";
-  window.ORAL_CURRENT_PHASE = {{ current_phase|default(1) }};
-  window.ORAL_TTS_ENDPOINT = "{{ url_for('oral.tts', session_id=session.id) }}";
-  window.ORAL_TTS_VOICE = "marin";
-  window.ORAL_TTS_MODEL = "gpt-4o-mini-tts";
-  window.ORAL_TTS_INSTRUCTIONS = "Speak as a warm, natural Southern British (RP) female in her late 20s. British pronunciation (e.g., 'water' without American 't' flap). Natural UK pacing and intonation. No American accent. Friendly dental patient tone. Avoid sounding robotic.";
+<script type="application/json" id="oral-config">
+  {{ {
+    "chatPostUrl": chat_post_url,
+    "currentPhase": (current_phase|default(1)),
+    "ttsEndpoint": url_for('oral.tts', session_id=session.id),
+    "ttsVoice": "shimmer",
+    "ttsModel": "gpt-4o-mini-tts",
+    "ttsInstructions": "Speak as a warm, Scottish female in her early 30s. British pronunciation (e.g., 'water' without American 't' flap). Natural UK pacing and intonation. No American accent. Friendly dental patient tone. Avoid sounding robotic."
+  } | tojson }}
 </script>
-<script src="{{ url_for('static', filename='oral_chat.js') }}"></script>
-<script src="{{ url_for('static', filename='oral_voice.js') }}"></script>
+<script defer src="{{ url_for('static', filename='oral_config.js') }}"></script>
+<script defer src="{{ url_for('static', filename='oral_chat.js') }}"></script>
+<script defer src="{{ url_for('static', filename='oral_voice.js') }}"></script>

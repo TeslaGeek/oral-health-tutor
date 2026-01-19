@@ -820,26 +820,7 @@ textarea {
 .legend-box .cell-amber { background-color: #ffdd00; color: #000; }
 .legend-box .cell-red   { background-color: #d4351c; color: white; }
 
-/* BS5: override CSS variables for .btn-primary */
-.btn-primary {
-  --bs-btn-bg: #343a40;
-  --bs-btn-border-color: #363637;
-  --bs-btn-hover-bg: #8f8f8f;
-  --bs-btn-hover-border-color: #484949;
-  --bs-btn-active-bg: #000000;
-  --bs-btn-active-border-color: #000000;
-  --bs-btn-focus-shadow-rgb: 0, 0, 0; /* kills blue glow */
-}
-
-/* BS5 active variants (btn-check etc.) */
-.btn-check:checked + .btn-primary,
-.btn-check:active + .btn-primary,
-.btn-primary:active,
-.btn-primary.active,
-.show > .btn-primary.dropdown-toggle {
-  background-color: #000000;
-  border-color: #000000;
-}
+/* BS5 variables removed (Bootstrap 4.6.2 in use) */
 
 /* BS4/compat fallback to be extra safe */
 .btn-primary,
@@ -853,6 +834,12 @@ textarea {
   border-color: #363637;
 }
 .btn-primary:hover { background-color: #8f8f8f; border-color: #484949; }
+.oral-toggle.btn-outline-dark:hover,
+.oral-toggle.btn-outline-dark:focus {
+  background-color: #8f8f8f;
+  border-color: #484949;
+  color: #fff;
+}
 .btn-primary:active,
 .btn-primary.active,
 .show > .btn-primary.dropdown-toggle {
@@ -863,6 +850,152 @@ textarea {
 .btn:focus {
   outline: 0 !important;
   box-shadow: none !important;
+}
+
+/* ---------- Tutor feedback card ---------- */
+.oral-feedback-card {
+  border-radius: 12px;
+  border: 1px solid #eee;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+}
+
+.oral-feedback-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.oral-score-pill {
+  background: #f2f4f7;
+  color: #111;
+  border: 1px solid #e6e8ec;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.oral-feedback-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 1200px) {
+  .oral-feedback-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* The right pane is not wide enough for 3 columns. Force 1-col feedback there. */
+.col-lg-7 .oral-feedback-grid {
+  grid-template-columns: 1fr !important;
+}
+
+.oral-feedback-section {
+  background: #fbfbfc;
+  border: 1px solid #eef0f3;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.oral-feedback-section--gaps {
+  background: #fffdf7;
+  border-color: #f2ead7;
+}
+
+.oral-feedback-section--unsafe {
+  background: #fff7f7;
+  border-color: #f0d7d7;
+}
+
+.oral-feedback-section-header {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.oral-feedback-list {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.oral-feedback-item {
+  margin-bottom: 10px;
+}
+
+.oral-feedback-comment {
+  line-height: 1.35;
+}
+
+.oral-feedback-callout {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.oral-feedback-callout--expected {
+  background: #fffef8;
+  border-color: #f2ead7;
+}
+
+.oral-feedback-callout--unsafe {
+  background: #fff9f9;
+  border-color: #f0d7d7;
+}
+
+.oral-feedback-callout-label {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+  color: #444;
+}
+
+.oral-summary {
+  background: #f7fafc;
+  border: 1px solid #e9eef5;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.oral-summary-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.oral-refine-note {
+  background: #f1f7ff;
+  border: 1px solid #d7e7ff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  color: #234;
+}
+
+.oral-feedback-card,
+.oral-feedback-card * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.oral-feedback-section summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.oral-feedback-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.oral-feedback-section summary:before {
+  content: "▸ ";
+  display: inline-block;
+  margin-right: 4px;
+  color: #666;
+}
+
+.oral-feedback-section[open] summary:before {
+  content: "▾ ";
 }
 .nav-pills.nav-bold .nav-link {
   padding: .6rem 1rem;
@@ -893,10 +1026,129 @@ textarea {
 }
 
 /* keep focus ring inside the control */
-#audience-box .form-control:focus {
-  border-color: #0d6efd !important;
-  box-shadow: inset 0 0 0 2px rgba(13,110,253,.9) !important;
+#audience-box .form-control:focus,
+#audience-box .form-control:focus-visible {
+  border-color: #343a40 !important;
+  box-shadow: inset 0 0 0 2px rgba(52,58,64,.35) !important;
   outline: none !important;
+}
+
+/* =========================================================
+   GLOBAL GREY BUTTON THEME (Bootstrap 4.6.2)
+   ========================================================= */
+
+/* Base: remove blue glow everywhere */
+.btn:focus,
+.btn:active:focus,
+.btn.focus,
+.form-control:focus,
+.custom-control-input:focus ~ .custom-control-label::before,
+.custom-select:focus {
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Theme colors */
+:root {
+  --ies-btn-bg: #3a3b3c;
+  --ies-btn-border: #3a3b3c;
+  --ies-btn-hover: dimgrey;
+  --ies-btn-hover-border: #484949;
+  --ies-btn-active: #000000;
+  --ies-btn-active-border: #000000;
+  --ies-btn-text: #ffffff;
+}
+
+/* Solid buttons (primary/secondary) */
+.btn-primary,
+.btn-secondary {
+  background-color: var(--ies-btn-bg) !important;
+  border-color: var(--ies-btn-border) !important;
+  color: var(--ies-btn-text) !important;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+  background-color: var(--ies-btn-hover) !important;
+  border-color: var(--ies-btn-hover-border) !important;
+  color: var(--ies-btn-text) !important;
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-primary.active,
+.btn-secondary.active,
+.show > .btn-primary.dropdown-toggle,
+.show > .btn-secondary.dropdown-toggle {
+  background-color: var(--ies-btn-active) !important;
+  border-color: var(--ies-btn-active-border) !important;
+  color: var(--ies-btn-text) !important;
+}
+
+/* Disabled state */
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-primary.disabled,
+.btn-secondary.disabled {
+  opacity: 0.55 !important;
+  background-color: var(--ies-btn-bg) !important;
+  border-color: var(--ies-btn-border) !important;
+}
+
+/* Outline variants used in UI */
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-dark {
+  background-color: transparent !important;
+  border-color: var(--ies-btn-border) !important;
+  color: var(--ies-btn-bg) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-dark:hover {
+  background-color: var(--ies-btn-hover) !important;
+  border-color: var(--ies-btn-hover-border) !important;
+  color: var(--ies-btn-text) !important;
+}
+
+.btn-outline-primary:active,
+.btn-outline-secondary:active,
+.btn-outline-dark:active,
+.btn-outline-primary.active,
+.btn-outline-secondary.active,
+.btn-outline-dark.active {
+  background-color: var(--ies-btn-active) !important;
+  border-color: var(--ies-btn-active-border) !important;
+  color: var(--ies-btn-text) !important;
+}
+
+/* Keep small button padding looking nice in BS4 */
+.btn.btn-sm {
+  border-radius: 6px;
+}
+
+/* Optional: mode toggle buttons match theme */
+.btn-group .btn {
+  box-shadow: none !important;
+}
+
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.85 !important;
+  cursor: not-allowed !important;
+}
+
+:root {
+  --nav-offset: 12px;
+}
+
+.oral-left-sticky {
+  position: sticky;
+  top: calc(var(--nav-h, 0px) + var(--nav-offset));
+  align-self: flex-start;
+  max-height: calc(100vh - (var(--nav-h, 0px) + var(--nav-offset) + 12px));
+  overflow: auto;
 }
 
 /* nicer in newer browsers */

@@ -18,16 +18,18 @@
   {% if session.feedback_json %}
     {% include "oral/_feedback_block.html" %}
   {% else %}
-    <div class="alert alert-info" role="alert">
-      Feedback has not been generated yet for this submission.
+    <div class="alert alert-info" role="alert" id="no-feedback-msg">
+      Generating supervisor feedback…
     </div>
-    <button id="generate-feedback-btn" class="btn btn-primary" type="button">
-      Generate Supervisor Feedback
-    </button>
+
     <div id="gen-status" class="mt-2 text-muted" style="display:none;">
       <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       <span class="ml-2">Generating feedback…</span>
     </div>
+
+    <button id="generate-feedback-btn" class="btn btn-primary mt-2" type="button" style="display:none;">
+      Retry generating feedback
+    </button>
   {% endif %}
 </div>
 
@@ -40,31 +42,76 @@
     const btn = document.getElementById("generate-feedback-btn");
     const status = document.getElementById("gen-status");
     const container = document.getElementById("feedback-container");
-    if (!btn || !container) return;
+    const msg = document.getElementById("no-feedback-msg");
 
-    btn.addEventListener("click", async function () {
-      btn.disabled = true;
+    const csrf =
+      (document.querySelector('meta[name="csrf-token"]') || {}).content ||
+      (document.querySelector('meta[name="csrf_token"]') || {}).content ||
+      "";
+
+    const endpoint = "{{ url_for('oral.generate_feedback', session_id=session.id) }}";
+
+    if (!container) return;
+
+    async function runGenerate() {
+      if (btn) btn.disabled = true;
+      if (btn) btn.style.display = "none";
       if (status) status.style.display = "block";
+      if (msg) msg.textContent = "Generating supervisor feedback…";
+
       try {
-        const resp = await fetch("{{ url_for('oral.generate_feedback', session_id=session.id) }}", {
+        const resp = await fetch(endpoint, {
           method: "POST",
           headers: {
-            "X-CSRFToken": (document.querySelector('meta[name=\"csrf-token\"]') || {}).content || ""
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrf,
+            "X-CSRF-Token": csrf
           }
         });
+
         const data = await resp.json().catch(() => ({}));
+
         if (!resp.ok || !data.ok) {
-          container.innerHTML = `<div class="alert alert-danger">${data.error || "Failed to generate feedback."}</div>`;
-        } else {
-          container.innerHTML = data.feedback_html || `<div class="alert alert-success">Feedback generated.</div>`;
+          container.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+              ${data.error || "Failed to generate feedback."}
+            </div>
+            <button id="generate-feedback-btn" class="btn btn-primary" type="button">
+              Retry generating feedback
+            </button>
+          `;
+
+          const retryBtn = document.getElementById("generate-feedback-btn");
+          if (retryBtn) retryBtn.addEventListener("click", runGenerate);
+          return;
         }
+
+        container.innerHTML = data.feedback_html || `
+          <div class="alert alert-success">Feedback generated.</div>
+        `;
       } catch (e) {
-        container.innerHTML = `<div class="alert alert-danger">Network error while generating feedback.</div>`;
+        container.innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            Network error while generating feedback.
+          </div>
+          <button id="generate-feedback-btn" class="btn btn-primary" type="button">
+            Retry generating feedback
+          </button>
+        `;
+        const retryBtn = document.getElementById("generate-feedback-btn");
+        if (retryBtn) retryBtn.addEventListener("click", runGenerate);
       } finally {
         if (status) status.style.display = "none";
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
       }
-    });
+    }
+
+    const hasFeedbackAlready = {{ "true" if session.feedback_json else "false" }};
+    if (!hasFeedbackAlready) {
+      runGenerate();
+    }
+
+    if (btn) btn.addEventListener("click", runGenerate);
   })();
 </script>
 

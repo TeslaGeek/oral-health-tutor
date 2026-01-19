@@ -1,4 +1,17 @@
 (function () {
+  if (window.__ORAL_CHAT_INITED) return;
+  window.__ORAL_CHAT_INITED = true;
+
+  function onReady(fn) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      fn();
+    }
+  }
+
+  const cfg = (window.getOralConfig && window.getOralConfig()) || {};
+
   function getCsrfToken() {
     const el = document.querySelector('meta[name="csrf-token"]');
     return el ? el.getAttribute('content') : '';
@@ -7,11 +20,11 @@
   let currentAudio = null;
 
   function isVoiceModeEnabled() {
-    return window.ORAL_INPUT_MODE === "voice";
+    return (window.ORAL_INPUT_MODE || "text") === "voice";
   }
 
   async function playPatientAudio(text) {
-    const endpoint = window.ORAL_TTS_ENDPOINT;
+    const endpoint = cfg.ttsEndpoint || window.ORAL_TTS_ENDPOINT;
     if (!endpoint) return;
 
     try {
@@ -24,13 +37,13 @@
 
     const payload = {
       text,
-      voice: window.ORAL_TTS_VOICE || "marin",
+      voice: cfg.ttsVoice || window.ORAL_TTS_VOICE || "marin",
     };
-    if (window.ORAL_TTS_MODEL) {
-      payload.model = window.ORAL_TTS_MODEL;
+    if (cfg.ttsModel || window.ORAL_TTS_MODEL) {
+      payload.model = cfg.ttsModel || window.ORAL_TTS_MODEL;
     }
-    if (window.ORAL_TTS_INSTRUCTIONS) {
-      payload.instructions = window.ORAL_TTS_INSTRUCTIONS;
+    if (cfg.ttsInstructions || window.ORAL_TTS_INSTRUCTIONS) {
+      payload.instructions = cfg.ttsInstructions || window.ORAL_TTS_INSTRUCTIONS;
     }
 
     console.log("TTS -> endpoint:", endpoint);
@@ -108,8 +121,8 @@
   }
 
   async function postChatMessage(message, opts) {
-    const chatPostUrl = window.ORAL_CHAT_POST_URL;
-    const phase = window.ORAL_CURRENT_PHASE || 1;
+    const chatPostUrl = cfg.chatPostUrl || window.ORAL_CHAT_POST_URL;
+    const phase = cfg.currentPhase || window.ORAL_CURRENT_PHASE || 1;
     if (!chatPostUrl) {
       console.error("ORAL_CHAT_POST_URL not set");
       return { ok: false, error: "Chat not configured" };
@@ -192,7 +205,7 @@
     sendChatFromInput,
   };
 
-  document.addEventListener("DOMContentLoaded", () => {
+  onReady(() => {
     const log = getLogEl();
     if (log) log.scrollTop = log.scrollHeight;
 
