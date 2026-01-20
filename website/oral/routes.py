@@ -19,7 +19,7 @@ DEFAULT_TTS_VOICE = os.getenv("ORAL_TTS_VOICE", "marin")
 DEFAULT_TTS_FORMAT = os.getenv("ORAL_TTS_FORMAT", "mp3")
 DEFAULT_TTS_INSTRUCTIONS = os.getenv(
     "ORAL_TTS_INSTRUCTIONS",
-    "Scottish female dental patient. Natural Scottish pacing and intonation. Avoid American pronunciation.",
+    "Scottish female dental patient. Natural Scottish accent only.",
 )
 
 

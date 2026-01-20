@@ -72,7 +72,7 @@
     "ttsEndpoint": url_for('oral.tts', session_id=session.id),
     "ttsVoice": "marin",
     "ttsModel": "gpt-4o-mini-tts",
-    "ttsInstructions": "Speak as a warm, Scottish female in her early 30s. Scottish pronunciation. Natural Scottish pacing and intonation. No American accent. Friendly dental patient tone. Avoid sounding robotic."
+    "ttsInstructions": "Speak as a warm, Scottish female in her early 30s. Scottish accent only. Friendly dental patient tone. Avoid sounding robotic."
   } | tojson }}
 </script>
 <script defer src="{{ url_for('static', filename='oral_config.js') }}"></script>
