@@ -869,7 +869,15 @@ textarea {
   color: #111;
   border: 1px solid #e6e8ec;
   font-weight: 700;
-  padding: 8px 10px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 64px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .oral-feedback-grid {

@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, BigInteger, String, Text, JSON, Enum,
-    ForeignKey, TIMESTAMP, DECIMAL
+    ForeignKey, TIMESTAMP, DECIMAL, Boolean
 )
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.ext.mutable import MutableList, MutableDict
@@ -52,6 +52,7 @@ class Session(Base):
     investigation_notes = Column(Text)
     diagnoses = Column(Text)
     risk_assessment = Column(Text)
+    phase2_investigations_locked = Column(Boolean, nullable=False, default=False)
     phase1_completed_at = Column(TIMESTAMP)
     phase2_completed_at = Column(TIMESTAMP)
 

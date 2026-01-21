@@ -1,4 +1,6 @@
 import os
+import hashlib
+import json
 from datetime import datetime
 
 from flask import Blueprint, redirect, render_template, request, url_for, jsonify, session as flask_session, current_app, Response
@@ -21,6 +23,29 @@ DEFAULT_TTS_INSTRUCTIONS = os.getenv(
     "ORAL_TTS_INSTRUCTIONS",
     "Scottish female dental patient. Natural Scottish accent only.",
 )
+
+
+def phase1_hash(sess: Session) -> str:
+    payload = {
+        "hpc_notes": (sess.hpc_notes or "").strip(),
+        "medical_history_notes": (sess.medical_history_notes or "").strip(),
+        "expectations_notes": (sess.expectations_notes or "").strip(),
+        "social_history_notes": (sess.social_history_notes or "").strip(),
+        "diet_notes": (sess.diet_notes or "").strip(),
+        "preventive_regime_notes": (sess.preventive_regime_notes or "").strip(),
+    }
+    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def phase1_weight(attempt: int) -> float:
+    if attempt <= 2:
+        return 1.0
+    if attempt == 3:
+        return 0.8
+    if attempt == 4:
+        return 0.6
+    return 0.5
 
 
 def _iter_tts_audio_bytes(text: str, *, model: str, voice: str, instructions: str | None = None):
@@ -120,32 +145,64 @@ def phase1(session_id: int):
                 request.headers.get("X-Requested-With") == "XMLHttpRequest"
                 or request.form.get("save_only") == "1"
             )
-            sess.hpc_notes = request.form.get("hpc_notes")
-            sess.medical_history_notes = request.form.get("medical_history_notes")
-            sess.expectations_notes = request.form.get("expectations_notes")
-            sess.social_history_notes = request.form.get("social_history_notes")
-            sess.diet_notes = request.form.get("diet_notes")
-            sess.preventive_regime_notes = request.form.get("preventive_regime_notes")
+            def set_if_present(attr, field):
+                if field in request.form:
+                    setattr(sess, attr, (request.form.get(field) or "").strip())
+
+            phase1_fields = (
+                "hpc_notes",
+                "medical_history_notes",
+                "expectations_notes",
+                "social_history_notes",
+                "diet_notes",
+                "preventive_regime_notes",
+            )
+            for field in phase1_fields:
+                set_if_present(field, field)
+            if any(field in request.form for field in phase1_fields):
+                feedback_json = dict(sess.feedback_json or {})
+                scores_json = dict(sess.section_scores_json or {})
+                changed = False
+                if "phase1_feedback" in feedback_json:
+                    feedback_json.pop("phase1_feedback", None)
+                    feedback_json.pop("phase1_feedback__hash", None)
+                    changed = True
+                if "phase1_scores" in scores_json:
+                    scores_json.pop("phase1_scores", None)
+                    changed = True
+                if changed:
+                    sess.feedback_json = feedback_json
+                    sess.section_scores_json = scores_json
+                    flag_modified(sess, "feedback_json")
+                    flag_modified(sess, "section_scores_json")
             if not save_only and not sess.phase1_completed_at:
                 sess.phase1_completed_at = datetime.utcnow()
             db.commit()
+            db.refresh(sess)
+            current_app.logger.info(
+                "PHASE1 SAVED hpc=%r mh=%r exp=%r soc=%r diet=%r prev=%r",
+                sess.hpc_notes,
+                sess.medical_history_notes,
+                sess.expectations_notes,
+                sess.social_history_notes,
+                sess.diet_notes,
+                sess.preventive_regime_notes,
+            )
             if save_only:
                 return jsonify({"ok": True})
             return redirect(url_for("oral.phase2", session_id=session_id))
+        chat_log = sess.chat_log or []
+        return render_template(
+            "oral/phase1.html",
+            session_id=session_id,
+            session=sess,
+            case=case,
+            case_payload=case_payload,
+            chat_log=chat_log,
+            current_phase=1,
+        )
     finally:
         db.close()
-
-    chat_log = sess.chat_log or []
-
-    return render_template(
-        "oral/phase1.html",
-        session_id=session_id,
-        session=sess,
-        case=case,
-        case_payload=case_payload,
-        chat_log=chat_log,
-        current_phase=1,
-    )
 
 
 @oral_bp.route("/session/<int:session_id>/phase2", methods=["GET", "POST"])
@@ -170,12 +227,17 @@ def phase2(session_id: int):
                 request.headers.get("X-Requested-With") == "XMLHttpRequest"
                 or request.form.get("save_only") == "1"
             )
-            sess.selected_tests = request.form.getlist("selected_tests")
-            if "radiograph_report" in request.form:
-                sess.radiograph_report = request.form.get("radiograph_report")
-            sess.investigation_notes = request.form.get("investigation_notes")
-            sess.diagnoses = request.form.get("diagnoses")
-            sess.risk_assessment = request.form.get("risk_assessment")
+            def set_if_present(attr, field):
+                if field in request.form:
+                    setattr(sess, attr, (request.form.get(field) or "").strip())
+
+            if "selected_tests" in request.form:
+                if not getattr(sess, "phase2_investigations_locked", False):
+                    sess.selected_tests = request.form.getlist("selected_tests")
+            set_if_present("radiograph_report", "radiograph_report")
+            set_if_present("investigation_notes", "investigation_notes")
+            set_if_present("diagnoses", "diagnoses")
+            set_if_present("risk_assessment", "risk_assessment")
             if not save_only and not sess.phase2_completed_at:
                 sess.phase2_completed_at = datetime.utcnow()
             action = request.form.get("action", "continue")
@@ -185,22 +247,20 @@ def phase2(session_id: int):
             if action == "save":
                 return redirect(url_for("oral.phase2", session_id=session_id))
             return redirect(url_for("oral.phase3", session_id=session_id))
+        chat_log = sess.chat_log or []
+        return render_template(
+            "oral/phase2.html",
+            session_id=session_id,
+            session=sess,
+            case=case,
+            case_payload=case_payload,
+            test_options=test_options,
+            test_results=test_results,
+            chat_log=chat_log,
+            current_phase=2,
+        )
     finally:
         db.close()
-
-    chat_log = sess.chat_log or []
-
-    return render_template(
-        "oral/phase2.html",
-        session_id=session_id,
-        session=sess,
-        case=case,
-        case_payload=case_payload,
-        test_options=test_options,
-        test_results=test_results,
-        chat_log=chat_log,
-        current_phase=2,
-    )
 
 
 @oral_bp.route("/session/<int:session_id>/phase3", methods=["GET", "POST"])
@@ -225,11 +285,15 @@ def phase3(session_id: int):
                 request.headers.get("X-Requested-With") == "XMLHttpRequest"
                 or request.form.get("save_only") == "1"
             )
-            sess.prevention_plan = request.form.get("prevention_plan")
-            sess.rehab_options = request.form.get("rehab_options")
-            sess.operative_options = request.form.get("operative_options")
-            sess.patient_preferences = request.form.get("patient_preferences")
-            sess.final_plan_and_consent_notes = request.form.get("final_plan_and_consent_notes")
+            def set_if_present(attr, field):
+                if field in request.form:
+                    setattr(sess, attr, (request.form.get(field) or "").strip())
+
+            set_if_present("prevention_plan", "prevention_plan")
+            set_if_present("rehab_options", "rehab_options")
+            set_if_present("operative_options", "operative_options")
+            set_if_present("patient_preferences", "patient_preferences")
+            set_if_present("final_plan_and_consent_notes", "final_plan_and_consent_notes")
 
             if not save_only:
                 if not sess.phase3_completed_at:
@@ -258,22 +322,20 @@ def phase3(session_id: int):
 
             db.commit()
             return redirect(url_for("oral.completed", session_id=session_id))
+        chat_log = sess.chat_log or []
+        return render_template(
+            "oral/phase3.html",
+            session_id=session_id,
+            session=sess,
+            case=case,
+            case_payload=case_payload,
+            test_results=test_results,
+            test_options=test_options,
+            chat_log=chat_log,
+            current_phase=3,
+        )
     finally:
         db.close()
-
-    chat_log = sess.chat_log or []
-
-    return render_template(
-        "oral/phase3.html",
-        session_id=session_id,
-        session=sess,
-        case=case,
-        case_payload=case_payload,
-        test_results=test_results,
-        test_options=test_options,
-        chat_log=chat_log,
-        current_phase=3,
-    )
 
 
 @oral_bp.route("/session/<int:session_id>/completed")
@@ -354,28 +416,130 @@ def phase_feedback(session_id: int, phase: int):
         try:
             payload = request.get_json(silent=True) or {}
             scope = payload.get("scope")
+            force = bool(payload.get("force"))
             scope_key = None
             if phase == 2 and scope in ("investigations", "diagnosis"):
                 scope_key = scope
 
+            if (
+                phase == 2
+                and scope_key == "investigations"
+                and sess.phase2_investigations_locked
+            ):
+                return jsonify(
+                    {
+                        "ok": False,
+                        "error": (
+                            "Investigation feedback has already been provided and "
+                            "cannot be regenerated. You may continue with interpretation "
+                            "and diagnosis."
+                        ),
+                    }
+                ), 409
+
             feedback_key = f"phase{phase}_feedback" if not scope_key else f"phase{phase}_{scope_key}_feedback"
             score_key = f"phase{phase}_scores" if not scope_key else f"phase{phase}_{scope_key}_scores"
+            hash_key = f"{feedback_key}__hash"
 
-            if sess.feedback_json and sess.feedback_json.get(feedback_key):
-                html = render_template(
-                    "oral/_phase_feedback_block.html",
-                    session=sess,
-                    phase=phase,
-                    feedback_key=feedback_key,
-                    score_key=score_key,
-                )
-                return jsonify({"ok": True, "feedback_html": html, "cached": True}), 200
+            def _text_len(val):
+                return len(val.strip()) if isinstance(val, str) else 0
+
+            current_app.logger.info(
+                "PHASE_FEEDBACK READ hpc=%r mh=%r exp=%r soc=%r diet=%r prev=%r",
+                sess.hpc_notes,
+                sess.medical_history_notes,
+                sess.expectations_notes,
+                sess.social_history_notes,
+                sess.diet_notes,
+                sess.preventive_regime_notes,
+            )
+            current_app.logger.info(
+                "Phase feedback request phase=%s scope=%s force=%s lens=%s",
+                phase,
+                scope_key,
+                force,
+                {
+                    "hpc_notes": _text_len(sess.hpc_notes),
+                    "medical_history_notes": _text_len(sess.medical_history_notes),
+                    "expectations_notes": _text_len(sess.expectations_notes),
+                    "social_history_notes": _text_len(sess.social_history_notes),
+                    "diet_notes": _text_len(sess.diet_notes),
+                    "preventive_regime_notes": _text_len(sess.preventive_regime_notes),
+                    "radiograph_report": _text_len(sess.radiograph_report),
+                    "investigation_notes": _text_len(sess.investigation_notes),
+                    "diagnoses": _text_len(sess.diagnoses),
+                    "risk_assessment": _text_len(sess.risk_assessment),
+                    "prevention_plan": _text_len(sess.prevention_plan),
+                    "rehab_options": _text_len(sess.rehab_options),
+                    "operative_options": _text_len(sess.operative_options),
+                    "patient_preferences": _text_len(sess.patient_preferences),
+                    "final_plan_and_consent_notes": _text_len(sess.final_plan_and_consent_notes),
+                    "selected_tests": len(sess.selected_tests or []),
+                },
+            )
+
+            if not force and sess.feedback_json and sess.feedback_json.get(feedback_key):
+                if phase == 1:
+                    cached_hash = (sess.feedback_json or {}).get(hash_key)
+                    current_hash = phase1_hash(sess)
+                    has_score = bool((sess.section_scores_json or {}).get(score_key))
+                    if cached_hash == current_hash and has_score:
+                        html = render_template(
+                            "oral/_phase_feedback_block.html",
+                            session=sess,
+                            phase=phase,
+                            feedback_key=feedback_key,
+                            score_key=score_key,
+                        )
+                        return jsonify({"ok": True, "feedback_html": html, "cached": True}), 200
+                else:
+                    if phase == 2 and scope_key == "investigations" and not sess.phase2_investigations_locked:
+                        sess.phase2_investigations_locked = True
+                        db.commit()
+                    html = render_template(
+                        "oral/_phase_feedback_block.html",
+                        session=sess,
+                        phase=phase,
+                        feedback_key=feedback_key,
+                        score_key=score_key,
+                    )
+                    return jsonify({"ok": True, "feedback_html": html, "cached": True}), 200
 
             phase_feedback_data, phase_scores = generate_feedback_for_session_phase(sess, phase, scope=scope_key)
+            is_empty = (
+                not phase_feedback_data.get("summary")
+                and not (phase_feedback_data.get("strengths") or [])
+                and not (phase_feedback_data.get("gaps") or [])
+                and not (phase_feedback_data.get("unsafe_or_concerning") or [])
+            )
+            if is_empty:
+                return jsonify({
+                    "ok": False,
+                    "error": "AI feedback failed (empty response). Check server logs for the OpenAI error."
+                }), 502
+            if phase == 2 and scope_key == "investigations":
+                sess.phase2_investigations_locked = True
 
             feedback_json = dict(sess.feedback_json or {})
             section_scores = dict(sess.section_scores_json or {})
             feedback_json[feedback_key] = phase_feedback_data
+            if phase == 1:
+                feedback_json[hash_key] = phase1_hash(sess)
+                attempt_key = "phase1_feedback_requests"
+                attempt = int(section_scores.get(attempt_key) or 0) + 1
+                section_scores[attempt_key] = attempt
+                weight = phase1_weight(attempt)
+                raw_score = phase_scores.get("score", 0)
+                try:
+                    raw_score_f = float(raw_score)
+                except Exception:
+                    raw_score_f = 0.0
+                adjusted = round(raw_score_f * weight, 1)
+                phase_scores = dict(phase_scores or {})
+                phase_scores["score_raw"] = raw_score_f
+                phase_scores["score"] = adjusted
+                phase_scores["attempt"] = attempt
+                phase_scores["weight"] = weight
             section_scores[score_key] = phase_scores
 
             sess.feedback_json = feedback_json
@@ -383,6 +547,7 @@ def phase_feedback(session_id: int, phase: int):
             flag_modified(sess, "feedback_json")
             flag_modified(sess, "section_scores_json")
             db.commit()
+            db.refresh(sess)
 
             html = render_template(
                 "oral/_phase_feedback_block.html",

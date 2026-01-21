@@ -113,31 +113,12 @@
         <button type="submit" class="btn btn-primary text-nowrap">
           Submit case &amp; finish
         </button>
-
-        <div class="d-flex align-items-center">
-          <button id="phase-feedback-btn" type="button" class="btn btn-primary text-nowrap">
-            Request Feedback (Phase {{ current_phase }})
-          </button>
-
-          <div id="phase-feedback-status" class="ml-3 text-muted" style="display:none;">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            <span class="ml-2">Generating...</span>
-          </div>
-        </div>
+      </div>
+      <div class="text-muted small mt-2">
+        Feedback is generated when you submit the case.
       </div>
 
     </form>
-
-    <details id="phase-feedback-details" class="mt-3">
-      <summary class="text-muted">Tutor feedback (this phase)</summary>
-      <div id="phase-feedback-container" class="mt-2">
-        {% if session.feedback_json and session.feedback_json.get("phase" ~ current_phase ~ "_feedback") %}
-          {% include "oral/_phase_feedback_block.html" %}
-        {% else %}
-          <div class="text-muted small">Feedback appears here when requested.</div>
-        {% endif %}
-      </div>
-    </details>
   </div>
 </div>
 
@@ -148,10 +129,6 @@
   <p class="text-muted">This may take a couple of minutes. Thank you for your patience.</p>
 </div>
 
-<script>
-  window.ORAL_PHASE_FEEDBACK_URL = "{{ url_for('oral.phase_feedback', session_id=session.id, phase=current_phase) }}";
-</script>
-<script src="{{ url_for('static', filename='oral_phase_feedback.js') }}"></script>
 <script>
   (function () {
     const form = document.querySelector('form');

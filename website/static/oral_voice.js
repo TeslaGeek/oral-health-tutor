@@ -97,7 +97,7 @@
           if (status) status.textContent = "Voice idle";
           stopTimer = null;
           lastTranscript = "";
-        }, 1000);
+        }, 200);
       };
 
       recognition.onerror = (e) => {

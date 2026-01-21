@@ -26,7 +26,8 @@
                        name="selected_tests"
                        value="{{ test.code }}"
                        data-type="{{ test.type }}"
-                       {% if session.selected_tests and test.code in session.selected_tests %}checked{% endif %}>
+                       {% if session.selected_tests and test.code in session.selected_tests %}checked{% endif %}
+                       {% if session.phase2_investigations_locked %}disabled{% endif %}>
                 <label class="form-check-label">
                   {{ test.name }}
                   {% if test.type %}
@@ -60,19 +61,26 @@
         <small class="text-muted">
           Comment on image quality, caries, restorations, bone levels and any limitations.
         </small>
-        <div class="d-flex align-items-center mt-3">
+        <small class="text-muted d-block mt-3 mb-1">
+          Once feedback is requested, selected investigations are locked and cannot be changed.
+        </small>
+        <div class="text-muted small mb-2">
+          This feedback marks your investigation justification and (if completed) your radiograph report.
+        </div>
+        <div class="d-flex align-items-center">
           <button id="phase-feedback-btn-investigations"
                   type="button"
                   class="btn btn-primary text-nowrap"
                   data-phase-feedback
                   data-scope="investigations"
-                  data-label="Check my investigation reasoning"
+                  data-label="Check my investigations and radiograph report"
                   data-required="textarea[name='radiograph_report'], textarea[name='investigation_notes']"
                   data-minchars="20"
                   data-container="phase-feedback-container-investigations"
                   data-status="phase-feedback-status-investigations"
-                  data-details="phase-feedback-details-investigations">
-            Check my investigation reasoning
+                  data-details="phase-feedback-details-investigations"
+                  {% if session.phase2_investigations_locked %}disabled{% endif %}>
+            {{ "Investigations feedback locked" if session.phase2_investigations_locked else "Check my investigations and radiograph report" }}
           </button>
 
           <div id="phase-feedback-status-investigations" class="ml-3 text-muted" style="display:none;">
@@ -82,7 +90,7 @@
         </div>
 
         <details id="phase-feedback-details-investigations" class="mt-3">
-          <summary class="text-muted">Tutor feedback (investigations)</summary>
+          <summary class="text-muted">Tutor feedback (investigations and radiograph report)</summary>
           <div id="phase-feedback-container-investigations" class="mt-2">
             {% if session.feedback_json and session.feedback_json.get("phase2_investigations_feedback") %}
               {% set phase = 2 %}
@@ -133,6 +141,9 @@
               <span class="ml-2">Generating...</span>
             </div>
           </div>
+          <small class="text-muted d-block mt-2">
+            Feedback assesses both diagnosis and risk. Missing sections will be marked as gaps.
+          </small>
 
           <details id="phase-feedback-details-diagnosis" class="mt-3">
             <summary class="text-muted">Tutor feedback (diagnosis &amp; risk)</summary>

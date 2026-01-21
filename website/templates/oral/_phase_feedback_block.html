@@ -5,7 +5,12 @@
 {% set score = (sc.score if sc and sc.score is not none else None) %}
 {% set title = "Tutor feedback (Phase " ~ phase ~ ")" %}
 {% if feedback_key is defined and "investigations" in feedback_key %}
-  {% set title = "Tutor feedback (Phase 2A - Investigations)" %}
+  {% set has_rad_report = (session.radiograph_report and session.radiograph_report.strip()) %}
+  {% if has_rad_report %}
+    {% set title = "Tutor feedback (Phase 2A - Investigations and radiograph report)" %}
+  {% else %}
+    {% set title = "Tutor feedback (Phase 2A - Investigations)" %}
+  {% endif %}
 {% elif feedback_key is defined and "diagnosis" in feedback_key %}
   {% set title = "Tutor feedback (Phase 2B - Diagnosis & Risk)" %}
 {% endif %}
@@ -22,13 +27,27 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div>
         <div class="oral-feedback-title">{{ title }}</div>
-        <div class="text-muted small">Evidence must come from what you wrote in this phase.</div>
+        {% if feedback_key is defined and "investigations" in feedback_key %}
+          <div class="text-muted small">
+            Evidence must come from your investigation justification and/or radiograph report.
+          </div>
+        {% else %}
+          <div class="text-muted small">Evidence must come from what you wrote in this phase.</div>
+        {% endif %}
       </div>
 
       <div class="oral-score-pill rounded">
         {% if score is not none %}{{ score }}/10{% else %}N/A{% endif %}
       </div>
     </div>
+    {% set attempt = (sc.attempt if sc and sc.attempt is defined else None) %}
+    {% set weight = (sc.weight if sc and sc.weight is defined else None) %}
+    {% set raw = (sc.score_raw if sc and sc.score_raw is defined else None) %}
+    {% if phase == 1 and attempt and attempt|int >= 3 and weight %}
+      <div class="text-muted small mt-1">
+        Feedback attempt {{ attempt }} — score adjusted (×{{ "%.1f"|format(weight) }}).
+      </div>
+    {% endif %}
 
     <div class="oral-feedback-grid">
       <details class="oral-feedback-section" {% if fb and fb.strengths %}open{% endif %}>
@@ -105,6 +124,13 @@
       <div class="oral-summary-title">Summary</div>
       <div>{{ fb.summary if fb and fb.summary else "No summary." }}</div>
     </div>
+
+    {% if phase == 2 and feedback_key is defined and "investigations" in feedback_key %}
+      <div class="oral-refine-note mt-3">
+        Investigation choices are now locked. You may refine your written interpretation,
+        but cannot request new investigations.
+      </div>
+    {% endif %}
 
     {% if phase == 1 and fb %}
       <div class="oral-refine-note mt-3">

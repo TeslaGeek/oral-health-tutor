@@ -54,6 +54,7 @@
     const containerId = btn.getAttribute("data-container") || "phase-feedback-container";
     const detailsId = btn.getAttribute("data-details") || "phase-feedback-details";
     const scope = btn.getAttribute("data-scope") || null;
+    const force = btn.getAttribute("data-force") === "1";
     const requiredSelector = btn.getAttribute("data-required") || null;
     const minChars = parseInt(btn.getAttribute("data-minchars") || "20", 10);
 
@@ -111,7 +112,7 @@
         const resp = await fetch(url, {
           method: "POST",
           headers: getJsonHeaders(),
-          body: JSON.stringify({ scope })
+          body: JSON.stringify({ scope, force })
         });
 
         const data = await resp.json().catch(() => ({}));
@@ -119,12 +120,20 @@
           container.innerHTML =
             `<div class="alert alert-danger mb-0">${data.error || "Failed to generate feedback."}</div>`;
           openDetailsAndScroll(details, container);
+          if (resp.status === 409 && scope === "investigations") {
+            btn.disabled = true;
+            btn.innerText = "Investigations feedback locked";
+          }
           return;
         }
 
         container.innerHTML =
           data.feedback_html || `<div class="alert alert-success mb-0">Feedback generated.</div>`;
         openDetailsAndScroll(details, container);
+        if (scope === "investigations") {
+          btn.disabled = true;
+          btn.innerText = "Investigations feedback locked";
+        }
       } catch (e) {
         container.innerHTML =
           "<div class='alert alert-danger mb-0'>Network error while generating feedback.</div>";

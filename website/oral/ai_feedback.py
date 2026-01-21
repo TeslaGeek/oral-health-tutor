@@ -2,6 +2,7 @@ import os
 import json
 import re
 import logging
+import logging
 from openai import OpenAI
 
 API_KEY = os.getenv("OPENAI_API_KEY")
@@ -83,6 +84,8 @@ Diagnoses:
 
 Risk assessment:
 {s(session_data.get('risk_assessment', ''))}
+
+NOTE: Radiograph interpretation may be documented in either the radiograph report or investigation notes.
 
 PHASE 3 – PLANNING / CONSENT
 Prevention plan:
@@ -324,6 +327,55 @@ def generate_feedback_for_session_phase(session, phase: int, scope: str | None =
         return val
 
     payload = {k: s(v) for k, v in fields.items()}
+    phase1_rules = ""
+    phase2_rules = ""
+    summary_focus = ""
+    if phase == 1:
+        phase1_rules = """
+PHASE 1 MARKING RULES (STRICT):
+- Phase 1 assesses structured information gathering.
+- The following sections are REQUIRED for a satisfactory attempt:
+  • History of presenting complaint
+  • Medical history
+  • Expectations of treatment and outcome
+  • Social history
+  • Dietary habits
+  • Current preventive regime
+- If one or more required sections are missing or empty:
+  • The maximum score MUST NOT exceed 4/10.
+  • Missing sections MUST be listed explicitly in gaps.
+- Depth in a single section does NOT compensate for missing sections.
+- For "Current preventive regime", only credit oral health prevention behaviours
+  (e.g., brushing frequency, fluoride toothpaste, interdental cleaning, mouthwash, dental attendance).
+  Do NOT credit generic lifestyle or motivation statements as preventive regime.
+"""
+    if phase == 2 and scope == "investigations":
+        phase2_rules = """
+PHASE 2A MARKING RULES (INVESTIGATIONS):
+- Test selection alone does NOT demonstrate competence.
+- Interpretation of findings is required for credit.
+- If tests are selected but not interpreted:
+  • The maximum score MUST NOT exceed 3/10.
+- Evidence must come from radiograph reports or investigation notes.
+- If "radiograph_report" contains text, you MUST include at least one Strength or Gap about it.
+- Use a direct quote from radiograph_report as evidence where possible.
+- If you cannot comment on the radiograph report, explain why in the summary.
+"""
+        summary_focus = "Summary must focus on interpretation quality."
+    elif phase == 2 and scope == "diagnosis":
+        phase2_rules = """
+PHASE 2B MARKING RULES (DIAGNOSIS & RISK):
+- A diagnosis MUST be supported by findings from Phase 1 and investigations.
+- Unsupported diagnoses MUST be marked as a gap.
+- If no risk assessment is provided:
+  • The maximum score MUST NOT exceed 4/10.
+- Listing diagnoses without justification is insufficient.
+- If "risk_assessment" contains text, you MUST include at least one Strength or Gap about it.
+"""
+        summary_focus = "Summary must focus on diagnostic reasoning and risk assessment."
+
+    summary_focus_line = f" {summary_focus}" if summary_focus else ""
+
     prompt = f"""
 You are an experienced oral health educator marking a dental student.
 
@@ -333,10 +385,11 @@ IMPORTANT RULES (do not break these):
 - If the student did not write something, treat it as not done.
 - Every positive claim MUST include a direct quote from the student's free-text as evidence.
 - Evidence must be a verbatim substring from the student's free-text fields. Do NOT use selected_tests as evidence.
+{phase1_rules}{phase2_rules}
 
 {phase_name}
 STUDENT FIELDS:
-{json.dumps(payload, ensure_ascii=True, indent=2)}
+{json.dumps(payload, ensure_ascii=False, indent=2)}
 
 Return ONLY JSON in this schema:
 {{
@@ -344,7 +397,7 @@ Return ONLY JSON in this schema:
     "strengths": [{{"comment":"...","evidence":"DIRECT QUOTE"}}],
     "gaps": [{{"comment":"...","expected":"...","evidence":""}}],
     "unsafe_or_concerning": [{{"comment":"...","evidence":"DIRECT QUOTE (or empty if none)"}}],
-    "summary": "1-2 sentences. No praise without evidence."
+    "summary": "1-2 sentences. No praise without evidence.{summary_focus_line}"
   }},
   "score": 0-10
 }}
@@ -399,7 +452,7 @@ Return ONLY JSON in this schema:
     raw = ""
     try:
         resp = client.chat.completions.create(
-            model=PREFERRED_MODEL,
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
             response_format={"type": "json_object"},
@@ -407,7 +460,14 @@ Return ONLY JSON in this schema:
         )
         raw = _extract_content(resp)
         parsed = json.loads(raw)
-    except Exception:
+    except Exception as e:
+        logger.exception(
+            "AI phase feedback failed. phase=%s scope=%s model=%r raw_preview=%r",
+            phase,
+            scope,
+            PREFERRED_MODEL,
+            (raw[:500] if isinstance(raw, str) else raw),
+        )
         schema_hint = """{
   "feedback": {
     "strengths": [],
@@ -448,6 +508,8 @@ Return ONLY JSON in this schema:
     def _norm_text(val: str) -> str:
         normalized = (val or "").lower()
         normalized = normalized.replace("“", '"').replace("”", '"').replace("’", "'")
+        normalized = normalized.replace("•", "-")
+        normalized = normalized.replace("–", "-").replace("—", "-")
         normalized = re.sub(r"\s+", " ", normalized).strip()
         return normalized
 
@@ -476,7 +538,16 @@ Return ONLY JSON in this schema:
         return cleaned
 
     student_text = _all_student_text(payload)
-    output["strengths"] = _prune_list(output["strengths"], student_text, allow_empty_evidence=False)
+    strengths_clean = []
+    for it in output["strengths"] or []:
+        it = _ensure_item_dict(it, ("comment", "evidence", "expected"))
+        evidence = (it.get("evidence") or "").strip()[:240]
+        if evidence and _evidence_present(evidence, student_text):
+            it["evidence"] = evidence
+        else:
+            it["evidence"] = ""
+        strengths_clean.append(it)
+    output["strengths"] = strengths_clean
     output["gaps"] = [
         _ensure_item_dict(it, ("comment", "expected", "evidence")) for it in (output["gaps"] or [])
     ]
@@ -494,6 +565,28 @@ Return ONLY JSON in this schema:
         score_val = int(round(float(score)))
     except Exception:
         score_val = 0
+    if phase == 1:
+        missing = [
+            k for k, v in fields.items()
+            if isinstance(v, str) and not v.strip()
+        ]
+        if missing:
+            score_val = min(score_val, 4)
+    if phase == 2 and scope == "investigations":
+        if fields.get("selected_tests") and not (
+            (fields.get("radiograph_report") or "").strip()
+            or (fields.get("investigation_notes") or "").strip()
+        ):
+            logging.getLogger(__name__).info(
+                "Phase2A cap applied: tests selected without interpretation."
+            )
+            score_val = min(score_val, 3)
+    if phase == 2 and scope == "diagnosis":
+        if not (fields.get("risk_assessment") or "").strip():
+            logging.getLogger(__name__).info(
+                "Phase2B cap applied: missing risk assessment."
+            )
+            score_val = min(score_val, 4)
     score_val = max(0, min(10, score_val))
     return output, {"score": score_val}
 
@@ -884,6 +977,8 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
     def _norm_text(val: str) -> str:
         normalized = val.lower()
         normalized = normalized.replace("“", '"').replace("”", '"').replace("’", "'")
+        normalized = normalized.replace("•", "-")
+        normalized = normalized.replace("–", "-").replace("—", "-")
         normalized = re.sub(r"\s+", " ", normalized).strip()
         return normalized
 
