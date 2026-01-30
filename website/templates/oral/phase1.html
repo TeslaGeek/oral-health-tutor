@@ -18,6 +18,7 @@
     {% set phase1_scores = (session.section_scores_json.get("phase1_scores") if session.section_scores_json else None) %}
     {% set phase1_score = (phase1_scores.score if phase1_scores and phase1_scores.score is not none else None) %}
     {% set phase1_missing_essential = (phase1_scores.missing_essential_count if phase1_scores and phase1_scores.missing_essential_count is not none else None) %}
+    {% set phase1_core_empty = (phase1_scores.core_sections_empty_count if phase1_scores and phase1_scores.core_sections_empty_count is not none else None) %}
     {% set has_phase1_feedback = (session.feedback_json and session.feedback_json.get("phase1_feedback")) %}
 
     <form method="post" id="phase1-form">
@@ -32,7 +33,7 @@
         <label for="medical_history_notes" class="form-label">
           Medical history
         </label>
-        <textarea id="medical_history_notes" name="medical_history_notes" class="form-control" rows="3" placeholder="e.g. Relevant conditions, medications, allergies, smoking status.">{{ session.medical_history_notes or "" }}</textarea>
+        <textarea id="medical_history_notes" name="medical_history_notes" class="form-control" rows="3" placeholder="e.g. Relevant conditions, medications, allergies, bleeding risk.">{{ session.medical_history_notes or "" }}</textarea>
       </div>
 
       <div class="mb-3">
@@ -71,11 +72,13 @@
           data-score="{{ phase1_score if phase1_score is not none else '' }}"
           data-missing-essential="{{ phase1_missing_essential if phase1_missing_essential is not none else '' }}"
           data-missing-threshold="4"
+          data-core-empty="{{ phase1_core_empty if phase1_core_empty is not none else '' }}"
+          data-core-empty-threshold="1"
           data-has-feedback="{{ 1 if has_phase1_feedback else 0 }}"
           data-min-total-chars="20"
           data-message-empty="Please add more detail before continuing to Phase 2."
           data-message-zero="Your Phase 1 score is 0. Add more detail or request feedback again before continuing."
-          data-message-missing="You're missing key information that would normally be gathered before investigations. Go back and improve?"
+          data-message-missing="One or more required sections are still empty. Please add a brief entry before moving on."
         >
           Save &amp; continue to Phase 2
         </button>
@@ -192,8 +195,8 @@
       }
       const hasFeedback = btn.dataset.hasFeedback === "1";
       const score = parseFloat(btn.dataset.score || "NaN");
-      const missingEssential = parseInt(btn.dataset.missingEssential || "0", 10);
-      const missingThreshold = parseInt(btn.dataset.missingThreshold || "4", 10);
+      const coreEmpty = parseInt(btn.dataset.coreEmpty || "0", 10);
+      const coreEmptyThreshold = parseInt(btn.dataset.coreEmptyThreshold || "1", 10);
 
       if (checkEmptyBlock()) {
         // Warning only; allow submission.
@@ -203,8 +206,8 @@
         showWarning(btn.dataset.messageZero || "Your Phase 1 score is 0.");
       }
 
-      if (hasFeedback && missingEssential >= missingThreshold) {
-        const msg = btn.dataset.messageMissing || "You're missing key information. Go back and improve?";
+      if (hasFeedback && coreEmpty >= coreEmptyThreshold) {
+        const msg = btn.dataset.messageMissing || "One or more required sections are still empty. Please add a brief entry before moving on.";
         showMissingModal(msg);
         e.preventDefault();
         return;

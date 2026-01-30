@@ -12,6 +12,7 @@
 
   <div class="col-lg-7" style="box-shadow:3px 3px 30px #dbdbdb; border-radius:10px; padding:16px;">
     <form id="investigations-form" method="post">
+      <input type="hidden" name="phase2_proceed_anyway" id="phase2-proceed-anyway" value="0">
 
       <div class="card mb-3">
         <div class="card-body">
@@ -59,8 +60,13 @@
         </div>
       </div>
 
+      {% set has_radiograph = session.selected_tests and (
+        'RAD_BW' in session.selected_tests
+        or 'RAD_PA' in session.selected_tests
+        or 'RAD_OPG' in session.selected_tests
+      ) %}
       <div id="radiograph-report-wrapper"
-           class="mb-3 {% if session.selected_tests and 'RAD_BW' in session.selected_tests %}d-block{% else %}d-none{% endif %}">
+           class="mb-3 {{ 'd-block' if has_radiograph else 'd-none' }}">
         <small class="text-muted d-block mb-2">You are expected to comment on image quality before diagnosis.</small>
         <label class="form-label">Radiograph report</label>
         <textarea name="radiograph_report"
@@ -199,6 +205,25 @@
           </details>
         </div>
       </div>
+
+{% if phase2_continue_warning %}
+  <div id="phase2-missing-modal" class="alert alert-warning mt-2">
+    <div class="fw-bold mb-2">Before moving on</div>
+    <div id="phase2-missing-message" class="mb-2">
+      {{ phase2_continue_warning_msg }}
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-secondary btn-sm"
+              onclick="document.getElementById('phase2-missing-modal').style.display='none';">
+        Go back and improve
+      </button>
+      <button type="button" class="btn btn-warning btn-sm"
+              onclick="document.getElementById('phase2-proceed-anyway').value='1'; this.closest('form').submit();">
+        Continue anyway (not recommended)
+      </button>
+    </div>
+  </div>
+{% endif %}
 
       <div class="d-flex align-items-center mt-3">
         <button class="btn btn-primary mr-2 text-nowrap" name="action" value="save">Save notes</button>

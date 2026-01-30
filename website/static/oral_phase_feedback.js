@@ -55,8 +55,13 @@
     const detailsId = btn.getAttribute("data-details") || "phase-feedback-details";
     const scope = btn.getAttribute("data-scope") || null;
     const force = btn.getAttribute("data-force") === "1";
-    const requiredSelector = btn.getAttribute("data-required") || null;
+    const requiredSelector = btn.getAttribute("data-required") || null; // legacy: treated as ANY
+    const anyRequiredSelector = btn.getAttribute("data-any-required") || null;
+    const allRequiredSelector = btn.getAttribute("data-all-required") || null;
     const minChars = parseInt(btn.getAttribute("data-minchars") || "20", 10);
+    const whenSelector = btn.getAttribute("data-required-when") || null;
+    const whenAnyRequired = btn.getAttribute("data-when-any-required") || null;
+    const whenAllRequired = btn.getAttribute("data-when-all-required") || null;
 
     const status = document.getElementById(statusId);
     const container = document.getElementById(containerId);
@@ -69,23 +74,68 @@
       return;
     }
 
+    function fieldHasEnoughText(el) {
+      return ((el?.value || "").trim().length >= minChars);
+    }
+
+    function anyHasText(selector) {
+      if (!selector) return true;
+      const fields = document.querySelectorAll(selector);
+      return Array.from(fields).some(fieldHasEnoughText);
+    }
+
+    function allHaveText(selector) {
+      if (!selector) return true;
+      const fields = document.querySelectorAll(selector);
+      return fields.length > 0 && Array.from(fields).every(fieldHasEnoughText);
+    }
+
+    function conditionIsTrue(selector) {
+      if (!selector) return false;
+      return document.querySelector(selector) !== null;
+    }
+
     function hasRequiredText() {
+      if (whenSelector && conditionIsTrue(whenSelector)) {
+        const okAny = whenAnyRequired ? anyHasText(whenAnyRequired) : true;
+        const okAll = whenAllRequired ? allHaveText(whenAllRequired) : true;
+        return okAny && okAll;
+      }
+
+      if (anyRequiredSelector) return anyHasText(anyRequiredSelector);
+      if (allRequiredSelector) return allHaveText(allRequiredSelector);
+
       if (!requiredSelector) return true;
-      const fields = document.querySelectorAll(requiredSelector);
-      return Array.from(fields).some((el) => ((el.value || "").trim().length >= minChars));
+      return anyHasText(requiredSelector);
     }
 
     function updateButtonState() {
-      if (!requiredSelector) return;
+      const hasAnyConfig =
+        requiredSelector || anyRequiredSelector || allRequiredSelector ||
+        whenSelector || whenAnyRequired || whenAllRequired;
+
+      if (!hasAnyConfig) return;
       btn.disabled = !hasRequiredText();
     }
 
     updateButtonState();
-    if (requiredSelector) {
-      document.querySelectorAll(requiredSelector).forEach((el) => {
+    const watchSelectors = [
+      requiredSelector,
+      anyRequiredSelector,
+      allRequiredSelector,
+      whenAnyRequired,
+      whenAllRequired,
+    ].filter(Boolean).join(",");
+
+    if (watchSelectors) {
+      document.querySelectorAll(watchSelectors).forEach((el) => {
         el.addEventListener("input", updateButtonState);
       });
     }
+
+    document.querySelectorAll("input[type='checkbox'][name='selected_tests']").forEach((el) => {
+      el.addEventListener("change", updateButtonState);
+    });
 
     btn.addEventListener("click", async () => {
       if (requiredSelector && !hasRequiredText()) {
@@ -95,10 +145,16 @@
         return;
       }
 
+      const phase1ContinueBtn = document.getElementById("phase1-continue-btn");
+      const togglePhase1Continue = phase1ContinueBtn && btn.id === "phase-feedback-btn";
       const originalLabel = btn.dataset.label || btn.innerText;
       btn.dataset._originalLabel = originalLabel;
       btn.innerText = "Checking...";
       btn.disabled = true;
+      if (togglePhase1Continue) {
+        phase1ContinueBtn.dataset._prevDisabled = phase1ContinueBtn.disabled ? "1" : "0";
+        phase1ContinueBtn.disabled = true;
+      }
 
       try {
         const saved = await saveOnlyNearestForm(btn);
@@ -140,7 +196,15 @@
         openDetailsAndScroll(details, container);
       } finally {
         btn.innerText = btn.dataset._originalLabel || originalLabel;
-        btn.disabled = requiredSelector ? !hasRequiredText() : false;
+        const hasAnyConfig =
+          requiredSelector || anyRequiredSelector || allRequiredSelector ||
+          whenSelector || whenAnyRequired || whenAllRequired;
+        btn.disabled = hasAnyConfig ? !hasRequiredText() : false;
+        if (togglePhase1Continue) {
+          const wasDisabled = phase1ContinueBtn.dataset._prevDisabled === "1";
+          phase1ContinueBtn.disabled = wasDisabled;
+          delete phase1ContinueBtn.dataset._prevDisabled;
+        }
       }
     });
   }

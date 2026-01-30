@@ -932,6 +932,64 @@ textarea {
   line-height: 1.35;
 }
 
+/* ---------- Feedback item variants ---------- */
+.oral-feedback-item--optional .oral-feedback-comment {
+  color: #6c757d;
+}
+
+.oral-feedback-item--optional {
+  opacity: 0.92;
+}
+
+.oral-feedback-item--optional .oral-feedback-callout--expected {
+  background: #fbfbfb;
+  border-color: #eee;
+}
+
+.oral-feedback-item--priority .oral-feedback-comment {
+  font-weight: 600;
+}
+
+.oral-feedback-item--priority {
+  border-left: 3px solid #d9caa0;
+  padding-left: 10px;
+  margin-left: -10px;
+}
+
+.oral-feedback-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  line-height: 1.2;
+  border: 1px solid #e6e8ec;
+  background: #f2f4f7;
+  color: #444;
+  margin-right: 6px;
+}
+
+.oral-feedback-badge--optional {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.oral-feedback-badge--priority {
+  background: #fff6df;
+  border-color: #f2ead7;
+  color: #6b4f00;
+}
+
+.oral-feedback-badge--refine {
+  background: #eef6ff;
+  border-color: #d7e7ff;
+  color: #2c4b7a;
+}
+
+.oral-feedback-badge--detected {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
 .oral-feedback-callout {
   margin-top: 6px;
   padding: 8px 10px;
