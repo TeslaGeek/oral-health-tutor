@@ -3,7 +3,7 @@
     <h5 class="card-title mb-2">Patient details</h5>
 
     <div class="d-flex">
-      {% set patient_img = case_payload.patient.patient_img if case_payload and case_payload.patient and case_payload.patient.patient_img else url_for('static', filename='images/charlotte.jpg') %}
+      {% set patient_img = case_payload.patient.patient_img if case_payload and case_payload.patient and case_payload.patient.patient_img else url_for('static', filename='images/charlotte2.jpg') %}
       <img src="{{ patient_img }}" alt="patient photo"
            style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin-right:10px;">
 
@@ -11,6 +11,7 @@
         <div><strong>Name:</strong> {{ (case_payload.patient.name if case_payload and case_payload.patient else "—") }}</div>
         <div><strong>Address:</strong> {{ (case_payload.patient.address if case_payload and case_payload.patient else "—") }}</div>
         <div><strong>DOB:</strong> {{ (case_payload.patient.dob if case_payload and case_payload.patient else "—") }}</div>
+        <div><strong>NHS:</strong> {{ (case_payload.patient.nhs_number if case_payload and case_payload.patient and case_payload.patient.nhs_number else "—") }}</div>
       </div>
     </div>
   </div>

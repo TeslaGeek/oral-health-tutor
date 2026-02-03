@@ -2,10 +2,11 @@
   "case_id": "DENT-CHARLOTTE-001",
   "version": "0.1",
   "patient": {
-    "name": "Charlotte",
+    "name": "Charlotte Ashford",
     "dob": "1994-01-01",
     "address": "Bristol",
     "age": 30,
+    "nhs_number": "485 777 3456",
     "occupation": "Crowdfunding manager",
     "persona": "Active lifestyle, goes to the gym regularly, health-conscious, proactive about health.",
     "patient_img": null
