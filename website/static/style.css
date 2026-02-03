@@ -16,8 +16,8 @@
 
 
 .beta-indicator {
-    background-color: #c1caba;
-    color: white;
+    
+    color: #cccccc;
     font-size: 1rem;
     padding: 2px 6px;
     border-radius: 4px;
@@ -37,10 +37,37 @@
 
 .navbar {
   background-color: #f9f9f9; /* Almost white background */
-  border-bottom: 2px solid #cccccc; /* Light gray bottom border */
+  border-bottom: none;
+  box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
+
+.navbar .navbar-title {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 400;
+  font-size: 1.8rem;
+  color: #21252a;
+  margin-left: 20px;
+}
+
+.navbar.show-title .navbar-title {
+  opacity: 1;
+}
+
 .navbar-brand, .nav-link {
   color: #21252a !important; /* Slightly gray text */
+}
+
+.nav-link {
+  font-weight: 200;
+}
+
+.navbar-nav {
+  align-items: center;
 }
 
 .download-bar{
@@ -49,16 +76,16 @@
 }
 
  .navbar-brand {
-   font-family: 'Poppins', serif;
-            font-weight: 100;
-            text-align: center;
+  font-family: 'Poppins', serif;
+  font-weight: 100;
   text-align: center;
-     margin-left: 50px;
+  text-align: center;
+  margin-left: 15px;
   font-size: 2.1rem; /* Adjusted as per your current setting */
   color: white; /* Ensures the text color is white, adjust if needed */
 
   padding: 1px; /* Adds some padding around the text */
-     padding-left: 20px;
+  padding-left: 0;
   border-radius: 5px; /* Optional: Adds rounded corners to the border */
   display: inline-block; /* Ensures the padding and border are applied correctly */
   text-decoration: none; /* Removes underline from the link */
@@ -214,6 +241,49 @@ table {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
   justify-items: center;
+}
+
+/* Horizontal queue layout */
+.waiting-room-queue {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 20px;
+  padding-right: 100px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.waiting-room-queue::-webkit-scrollbar {
+  display: none;
+}
+
+.waiting-room-queue .patient-card-soft {
+  flex-shrink: 0;
+}
+
+/* Placeholder cards */
+.patient-card-placeholder {
+  opacity: 0.6;
+}
+
+.patient-card-placeholder .placeholder-image {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(135deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+  background-size: 200% 200%;
+  animation: shimmer 2s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+.patient-card-placeholder .placeholder-text {
+  color: #aaa;
+  font-style: italic;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .patient-card-soft {
@@ -1058,12 +1128,12 @@ textarea {
 
 /* Theme colors */
 :root {
-  --ies-btn-bg: #3a3b3c;
-  --ies-btn-border: #3a3b3c;
-  --ies-btn-hover: dimgrey;
-  --ies-btn-hover-border: #484949;
-  --ies-btn-active: #000000;
-  --ies-btn-active-border: #000000;
+  --ies-btn-bg: #4a6fa5;
+  --ies-btn-border: #4a6fa5;
+  --ies-btn-hover: #3d5d8a;
+  --ies-btn-hover-border: #3d5d8a;
+  --ies-btn-active: #2c4a6e;
+  --ies-btn-active-border: #2c4a6e;
   --ies-btn-text: #ffffff;
 }
 
@@ -1134,6 +1204,11 @@ textarea {
 /* Keep small button padding looking nice in BS4 */
 .btn.btn-sm {
   border-radius: 6px;
+}
+
+/* Lighter font weight for buttons */
+.btn {
+  font-weight: 200;
 }
 
 /* Optional: mode toggle buttons match theme */
@@ -1215,6 +1290,7 @@ textarea {
   width: 50px;
   font-weight: 600;
   color: #555;
+  margin-right: 10px;
 }
 
 .bpe-grid {
@@ -1226,7 +1302,7 @@ textarea {
 .bpe-cell {
   border: 1px solid #ccc;
   border-radius: 4px;
-  padding: 6px 0;
+  padding: 4px;
   text-align: center;
   font-weight: 600;
   background-color: #f8f9fa;
@@ -1241,4 +1317,53 @@ textarea {
 .soft-pulse {
   animation: softPulse 1.2s ease-in-out 2;
   border-radius: 0.5rem;
+}
+
+/* Smaller placeholder text for chat input */
+#chat-input::placeholder {
+  font-size: 0.75rem;
+}
+
+/* Phase headings */
+.sticky-heading {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Left panel should not stretch full height */
+.row > .col-lg-5 {
+  align-self: flex-start;
+}
+
+/* Hide the logo and home btn in headings - now in navbar */
+.sticky-heading .sticky-logo,
+.sticky-heading .sticky-home-btn {
+  display: none;
+}
+
+.container {
+  margin-bottom: 30px;
+}
+
+/* Score badge for completed page */
+.score-badge {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 400;
+  background: none;
+  border: none;
+  color: #21252a;
+  animation: fadeInScore 0.8s ease-out forwards;
+}
+
+@keyframes fadeInScore {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

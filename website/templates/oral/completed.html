@@ -1,7 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="mb-3">Case submitted</h1>
+<h1 class="mb-3 sticky-heading">
+  <a href="{{ url_for('oral.welcome') }}" class="sticky-logo">IES</a>
+  <span>Case submitted</span>
+  <a href="{{ url_for('oral.welcome') }}" class="sticky-home-btn">Home</a>
+</h1>
+
+{% if session.overall_score %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const badge = document.getElementById("navbar-score-badge");
+    if (badge) {
+      badge.textContent = "Score: {{ session.overall_score | int }}/30";
+      badge.style.display = "inline-block";
+    }
+  });
+</script>
+{% endif %}
 
 <p class="lead">Thank you. Your session has been submitted.</p>
 
@@ -10,7 +26,7 @@
   Case ID: <strong>{{ session.case_id }}</strong><br>
   Status: <strong>{{ session.status.value if session.status else "unknown" }}</strong><br>
   {% if session.overall_score %}
-    Overall score: <strong>{{ session.overall_score }}/10</strong>
+    Overall score: <strong>{{ session.overall_score | int }}/30</strong>
   {% endif %}
 </p>
 

@@ -5,11 +5,11 @@
   <h1 class="waiting-room-title text-center mb-4">The Waiting Room</h1>
 
   {% if cases %}
-    <div class="waiting-room-grid">
+    <div class="waiting-room-queue">
       {% for case in cases %}
         {% set payload = case_payloads.get(case.id) if case_payloads else None %}
         {% set patient = payload.patient if payload else None %}
-        {% set patient_img = patient.patient_img if patient and patient.patient_img else url_for('static', filename='images/charlotte.jpg') %}
+        {% set patient_img = patient.patient_img if patient and patient.patient_img else url_for('static', filename='images/charlotte2.jpg') %}
         <div class="patient-card-soft">
           <div class="patient-image">
             <img src="{{ patient_img }}" alt="{{ patient.name or case.title }}">
@@ -18,6 +18,9 @@
             <div class="patient-row"><strong>Name:</strong> {{ patient.name or case.title }}</div>
             {% if patient and patient.dob %}
               <div class="patient-row"><strong>DoB:</strong> {{ patient.dob }}</div>
+            {% endif %}
+            {% if patient and patient.nhs_number %}
+              <div class="patient-row"><strong>NHS:</strong> {{ patient.nhs_number }}</div>
             {% endif %}
             {% if case.short_description %}
               <div class="patient-row text-muted">{{ case.short_description }}</div>
@@ -30,6 +33,40 @@
           </div>
         </div>
       {% endfor %}
+
+      <!-- Placeholder cards for queue effect -->
+      <div class="patient-card-soft patient-card-placeholder">
+        <div class="patient-image placeholder-image"></div>
+        <div class="patient-meta">
+          <div class="patient-row"><strong>Name:</strong> <span class="placeholder-text">Coming soon</span></div>
+          <div class="patient-row"><strong>DoB:</strong> <span class="placeholder-text">--/--/----</span></div>
+        </div>
+        <div class="text-center mt-3">
+          <button class="btn btn-secondary btn-sm" disabled>Coming soon</button>
+        </div>
+      </div>
+
+      <div class="patient-card-soft patient-card-placeholder">
+        <div class="patient-image placeholder-image"></div>
+        <div class="patient-meta">
+          <div class="patient-row"><strong>Name:</strong> <span class="placeholder-text">Coming soon</span></div>
+          <div class="patient-row"><strong>DoB:</strong> <span class="placeholder-text">--/--/----</span></div>
+        </div>
+        <div class="text-center mt-3">
+          <button class="btn btn-secondary btn-sm" disabled>Coming soon</button>
+        </div>
+      </div>
+
+      <div class="patient-card-soft patient-card-placeholder">
+        <div class="patient-image placeholder-image"></div>
+        <div class="patient-meta">
+          <div class="patient-row"><strong>Name:</strong> <span class="placeholder-text">Coming soon</span></div>
+          <div class="patient-row"><strong>DoB:</strong> <span class="placeholder-text">--/--/----</span></div>
+        </div>
+        <div class="text-center mt-3">
+          <button class="btn btn-secondary btn-sm" disabled>Coming soon</button>
+        </div>
+      </div>
     </div>
   {% else %}
     <p>No active cases yet.</p>
