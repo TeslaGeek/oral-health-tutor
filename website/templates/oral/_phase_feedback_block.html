@@ -29,7 +29,8 @@
         <div class="oral-feedback-title">{{ title }}</div>
         {% if feedback_key is defined and "investigations" in feedback_key %}
           <div class="text-muted small">
-            Evidence must come from your investigation justification and/or radiograph report.
+            Marks come mainly from documented findings (radiograph report / investigation notes).
+            A list of headings without observations will not score.
           </div>
         {% else %}
           <div class="text-muted small">Evidence must come from what you wrote in this phase.</div>
@@ -57,7 +58,12 @@
           <ul class="oral-feedback-list mt-2">
             {% for item in fb.strengths %}
               <li class="oral-feedback-item">
-                <div class="oral-feedback-comment">{{ item.comment }}</div>
+                <div class="oral-feedback-comment">
+                  {% if not item.evidence %}
+                    <span class="oral-feedback-badge oral-feedback-badge--detected">Detected</span>
+                  {% endif %}
+                  {{ item.comment }}
+                </div>
 
                 {% if item.evidence %}
                   <div class="oral-feedback-callout">
@@ -79,8 +85,37 @@
         {% if fb and fb.gaps %}
           <ul class="oral-feedback-list mt-2">
             {% for item in fb.gaps %}
-              <li class="oral-feedback-item">
-                <div class="oral-feedback-comment">{{ item.comment }}</div>
+              {% set is_optional = (item.optional if item.optional is defined else false) %}
+              {% set is_priority = (item.priority if item.priority is defined else false) %}
+              {% set is_refine = (item.refine if item.refine is defined else false) %}
+              {% set display_comment = item.comment %}
+              {% if is_priority and display_comment and display_comment.startswith("Fix before moving on") %}
+                {% set display_comment = display_comment
+                  | replace("Fix before moving on:", "", 1)
+                  | replace("Fix before moving on", "", 1)
+                  | trim
+                %}
+              {% endif %}
+              {% if is_refine and display_comment and display_comment.startswith("Refine") %}
+                {% set display_comment = display_comment
+                  | replace("Refine:", "", 1)
+                  | replace("Refine", "", 1)
+                  | trim
+                %}
+              {% endif %}
+              <li class="oral-feedback-item{% if is_optional %} oral-feedback-item--optional{% endif %}{% if is_priority %} oral-feedback-item--priority{% endif %}">
+                <div class="oral-feedback-comment">
+                  {% if is_priority %}
+                    <span class="oral-feedback-badge oral-feedback-badge--priority">Fix before moving on</span>
+                  {% endif %}
+                  {% if is_refine %}
+                    <span class="oral-feedback-badge oral-feedback-badge--refine">Refine</span>
+                  {% endif %}
+                  {% if is_optional %}
+                    <span class="oral-feedback-badge oral-feedback-badge--optional">Optional</span>
+                  {% endif %}
+                  {{ display_comment }}
+                </div>
 
                 {% if item.expected %}
                   <div class="oral-feedback-callout oral-feedback-callout--expected">

@@ -16,6 +16,7 @@
 
   <div class="col-lg-7" style="box-shadow:3px 3px 30px #dbdbdb; border-radius:10px; padding:16px;">
     <form id="investigations-form" method="post">
+      <input type="hidden" name="phase2_proceed_anyway" id="phase2-proceed-anyway" value="0">
 
       <div class="card mb-3">
         <div class="card-body">
@@ -48,14 +49,28 @@
             {% include "oral/_test_results.html" %}
           </div>
           <div class="mt-3">
-            <label class="form-label">Justification &amp; interpretation of investigations</label>
+            <label class="form-label">Investigation notes (BPE / tooth chart / other tests)</label>
             <textarea name="investigation_notes" class="form-control" rows="3">{{ session.investigation_notes or "" }}</textarea>
+            <small class="text-muted d-block mt-1">
+              Write what you actually found, not just what should be done.
+              Include headings if helpful (e.g., Tooth chart:, BPE:, Other tests:).
+              BPE should include 6 sextant scores (UR, UA, UL / LR, LA, LL).
+              Tooth charting should include dentition/restorations and any key findings with tooth numbers.
+            </small>
+            <small class="text-muted d-block mt-1">
+              Example: BPE: UR1 UA1 UL1 / LR2 LA2 LL2. Tooth chart: Low restorations (composite). Decay LR5. Fractured LR4.
+            </small>
           </div>
         </div>
       </div>
 
+      {% set has_radiograph = session.selected_tests and (
+        'RAD_BW' in session.selected_tests
+        or 'RAD_PA' in session.selected_tests
+        or 'RAD_OPG' in session.selected_tests
+      ) %}
       <div id="radiograph-report-wrapper"
-           class="mb-3 {% if session.selected_tests and 'RAD_BW' in session.selected_tests %}d-block{% else %}d-none{% endif %}">
+           class="mb-3 {{ 'd-block' if has_radiograph else 'd-none' }}">
         <small class="text-muted d-block mb-2">You are expected to comment on image quality before diagnosis.</small>
         <label class="form-label">Radiograph report</label>
         <textarea name="radiograph_report"
@@ -64,6 +79,21 @@
                   placeholder="Write your interpretation of the bitewing radiographs here...">{{ session.radiograph_report or "" }}</textarea>
         <small class="text-muted">
           Comment on image quality, caries, restorations, bone levels and any limitations.
+        </small>
+        <small class="text-muted d-block mt-1">
+          You are assessed on interpretation (what you observed), not a checklist of headings.
+          A radiograph report should include:
+          Quality (acceptable / unacceptable, A/U);
+          findings (radiolucencies/radiopacities with tooth + surface + depth/extent);
+          bone levels (normal / moderate / significant);
+          calculus (present/absent and where).
+        </small>
+        <small class="text-muted d-block mt-1">
+          Example: Bitewings: Quality U (premolars not fully captured). Radiolucency distal LR4 into dentine (D1).
+          Bone levels normal. No calculus visible.
+        </small>
+        <small class="text-muted d-block mt-1">
+          Interpretation means describing what you observe. Headings alone (e.g., “radiolucencies: location”) do not score.
         </small>
         <small class="text-muted d-block mt-3 mb-1">
           Once feedback is requested, selected investigations are locked and cannot be changed.
@@ -116,13 +146,28 @@
           <div class="mb-3">
             <label class="form-label">Diagnosis</label>
             <textarea name="diagnoses" class="form-control" rows="3">{{ session.diagnoses or "" }}</textarea>
-            <small class="text-muted">List key diagnoses. You can include differentials if relevant.</small>
+            <small class="text-muted d-block mt-1">
+              Write specific diagnoses, not general labels.
+              Each condition should be recorded clearly, even if absent.
+            </small>
+            <small class="text-muted d-block mt-1">
+              Examples: “Caries LR5 ICDAS 4.” “Plaque-induced gingivitis.”
+              “Periodontitis Stage II Grade B, localised, active.”
+              “Mild generalised tooth wear (erosion).”
+              “No TMJ disorder reported.”
+            </small>
           </div>
 
           <div class="mb-0">
             <label class="form-label">Risk assessment</label>
             <textarea name="risk_assessment" class="form-control" rows="3">{{ session.risk_assessment or "" }}</textarea>
-          <small class="text-muted">Comment on caries / periodontal / tooth wear / soft tissues / endodontic risk where relevant.</small>
+            <small class="text-muted d-block mt-1">
+              Risk assessment should identify risk factors and briefly link them to disease activity or prognosis.
+            </small>
+            <small class="text-muted d-block mt-1">
+              Example: “High caries risk due to frequent sugary drinks and snacking; moderate periodontal risk related to
+              plaque control (BPE 2s); protective factor: brushes twice daily with fluoride toothpaste.”
+            </small>
           </div>
 
           <div class="d-flex align-items-center mt-3">
@@ -164,6 +209,25 @@
           </details>
         </div>
       </div>
+
+{% if phase2_continue_warning %}
+  <div id="phase2-missing-modal" class="alert alert-warning mt-2">
+    <div class="fw-bold mb-2">Before moving on</div>
+    <div id="phase2-missing-message" class="mb-2">
+      {{ phase2_continue_warning_msg }}
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-secondary btn-sm"
+              onclick="document.getElementById('phase2-missing-modal').style.display='none';">
+        Go back and improve
+      </button>
+      <button type="button" class="btn btn-warning btn-sm"
+              onclick="document.getElementById('phase2-proceed-anyway').value='1'; this.closest('form').submit();">
+        Continue anyway (not recommended)
+      </button>
+    </div>
+  </div>
+{% endif %}
 
       <div class="d-flex align-items-center mt-3">
         <button class="btn btn-primary mr-2 text-nowrap" name="action" value="save">Save notes</button>

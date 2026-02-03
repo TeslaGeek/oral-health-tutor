@@ -19,7 +19,13 @@
   </div>
 
   <div class="col-lg-7" style="box-shadow:3px 3px 30px #dbdbdb; border-radius:10px; padding:16px;">
-    <form method="post">
+    {% set phase1_scores = (session.section_scores_json.get("phase1_scores") if session.section_scores_json else None) %}
+    {% set phase1_score = (phase1_scores.score if phase1_scores and phase1_scores.score is not none else None) %}
+    {% set phase1_missing_essential = (phase1_scores.missing_essential_count if phase1_scores and phase1_scores.missing_essential_count is not none else None) %}
+    {% set phase1_core_empty = (phase1_scores.core_sections_empty_count if phase1_scores and phase1_scores.core_sections_empty_count is not none else None) %}
+    {% set has_phase1_feedback = (session.feedback_json and session.feedback_json.get("phase1_feedback")) %}
+
+    <form method="post" id="phase1-form">
       <div class="mb-3">
         <label for="hpc_notes" class="form-label">
           History of presenting complaint
@@ -31,7 +37,7 @@
         <label for="medical_history_notes" class="form-label">
           Medical history
         </label>
-        <textarea id="medical_history_notes" name="medical_history_notes" class="form-control" rows="3" placeholder="e.g. Relevant conditions, medications, allergies, smoking status.">{{ session.medical_history_notes or "" }}</textarea>
+        <textarea id="medical_history_notes" name="medical_history_notes" class="form-control" rows="3" placeholder="e.g. Relevant conditions, medications, allergies, bleeding risk.">{{ session.medical_history_notes or "" }}</textarea>
       </div>
 
       <div class="mb-3">
@@ -63,7 +69,21 @@
       </div>
 
       <div class="d-flex align-items-center justify-content-between flex-nowrap">
-        <button type="submit" class="btn btn-primary">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          id="phase1-continue-btn"
+          data-score="{{ phase1_score if phase1_score is not none else '' }}"
+          data-missing-essential="{{ phase1_missing_essential if phase1_missing_essential is not none else '' }}"
+          data-missing-threshold="4"
+          data-core-empty="{{ phase1_core_empty if phase1_core_empty is not none else '' }}"
+          data-core-empty-threshold="1"
+          data-has-feedback="{{ 1 if has_phase1_feedback else 0 }}"
+          data-min-total-chars="20"
+          data-message-empty="Please add more detail before continuing to Phase 2."
+          data-message-zero="Your Phase 1 score is 0. Add more detail or request feedback again before continuing."
+          data-message-missing="One or more required sections are still empty. Please add a brief entry before moving on."
+        >
           Save &amp; continue to Phase 2
         </button>
 
@@ -76,6 +96,17 @@
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             <span class="ml-2">Generating...</span>
           </div>
+        </div>
+      </div>
+      <div id="phase1-continue-warning" class="text-muted small mt-2" style="display:none;"></div>
+      <div id="phase1-missing-modal" class="alert alert-warning mt-2" style="display:none;">
+        <div class="fw-bold mb-2">Strongly recommended to fix before moving on</div>
+        <div id="phase1-missing-message" class="mb-2">
+          You're missing key information that would normally be gathered before investigations.
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary btn-sm" id="phase1-missing-cancel">Go back and improve</button>
+          <button type="button" class="btn btn-warning btn-sm" id="phase1-missing-continue">Continue anyway (not recommended)</button>
         </div>
       </div>
     </form>
@@ -97,4 +128,95 @@
   window.ORAL_PHASE_FEEDBACK_URL = "{{ url_for('oral.phase_feedback', session_id=session.id, phase=current_phase) }}";
 </script>
 <script src="{{ url_for('static', filename='oral_phase_feedback.js') }}"></script>
+<script>
+  (function () {
+    const btn = document.getElementById("phase1-continue-btn");
+    const form = document.getElementById("phase1-form");
+    const warning = document.getElementById("phase1-continue-warning");
+    const missingModal = document.getElementById("phase1-missing-modal");
+    const missingMsg = document.getElementById("phase1-missing-message");
+    const missingCancel = document.getElementById("phase1-missing-cancel");
+    const missingContinue = document.getElementById("phase1-missing-continue");
+    let allowSubmit = false;
+    if (!btn || !form) return;
+
+    const fieldsSelector = "#hpc_notes, #medical_history_notes, #expectations_notes, #social_history_notes, #diet_notes, #preventive_regime_notes";
+    const minTotal = parseInt(btn.dataset.minTotalChars || "20", 10);
+
+    function totalChars() {
+      const fields = document.querySelectorAll(fieldsSelector);
+      return Array.from(fields).reduce((sum, el) => sum + ((el.value || "").trim().length), 0);
+    }
+
+    function showWarning(text) {
+      if (!warning) return;
+      warning.textContent = text;
+      warning.style.display = text ? "block" : "none";
+    }
+
+    function showMissingModal(text) {
+      if (!missingModal) return;
+      if (missingMsg) missingMsg.textContent = text || missingMsg.textContent;
+      missingModal.style.display = "block";
+    }
+
+    function hideMissingModal() {
+      if (!missingModal) return;
+      missingModal.style.display = "none";
+    }
+
+    function checkEmptyBlock() {
+      if (totalChars() < minTotal) {
+        showWarning(btn.dataset.messageEmpty || "Please add more detail before continuing.");
+        return true;
+      }
+      showWarning("");
+      return false;
+    }
+
+    document.querySelectorAll(fieldsSelector).forEach((el) => {
+      el.addEventListener("input", checkEmptyBlock);
+    });
+
+    if (missingCancel) {
+      missingCancel.addEventListener("click", () => {
+        hideMissingModal();
+      });
+    }
+
+    if (missingContinue) {
+      missingContinue.addEventListener("click", () => {
+        allowSubmit = true;
+        hideMissingModal();
+        form.submit();
+      });
+    }
+
+    form.addEventListener("submit", (e) => {
+      if (allowSubmit) {
+        allowSubmit = false;
+        return;
+      }
+      const hasFeedback = btn.dataset.hasFeedback === "1";
+      const score = parseFloat(btn.dataset.score || "NaN");
+      const coreEmpty = parseInt(btn.dataset.coreEmpty || "0", 10);
+      const coreEmptyThreshold = parseInt(btn.dataset.coreEmptyThreshold || "1", 10);
+
+      if (checkEmptyBlock()) {
+        // Warning only; allow submission.
+      }
+
+      if (hasFeedback && !Number.isNaN(score) && score <= 0) {
+        showWarning(btn.dataset.messageZero || "Your Phase 1 score is 0.");
+      }
+
+      if (hasFeedback && coreEmpty >= coreEmptyThreshold) {
+        const msg = btn.dataset.messageMissing || "One or more required sections are still empty. Please add a brief entry before moving on.";
+        showMissingModal(msg);
+        e.preventDefault();
+        return;
+      }
+    });
+  })();
+</script>
 {% endblock %}

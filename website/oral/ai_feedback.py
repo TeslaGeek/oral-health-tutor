@@ -216,6 +216,921 @@ Scoring rules:
     """.strip()
 
 
+# --- STRICT, CRITERION-LEVEL MARKING (Phase 1) -----------------------------
+
+PHASE1_CRITERIA_MAX = {
+    # Reason for attendance / HPC
+    "hpc_reason_for_attendance": 1.0,
+    "hpc_identification_of_symptoms": 1.0,
+    "hpc_site": 1.0,
+    "hpc_onset": 0.75,
+    "hpc_character": 1.0,
+    "hpc_progression": 0.75,
+    "hpc_radiation": 0.5,
+    "hpc_associated_symptoms": 0.25,
+    "hpc_timing_patterns": 0.5,
+    "hpc_exacerbating_relieving": 0.5,
+    "hpc_severity": 0.25,
+    # Medical history
+    "mh_cardiovascular": 1.0,
+    "mh_respiratory": 1.0,
+    "mh_other_systemic": 0.5,
+    "mh_gastrointestinal_reflux": 0.75,
+    "mh_genitourinary": 0.25,
+    "mh_medications": 1.0,
+    "mh_recent_hospitalisations": 0.25,
+    "mh_bleeding_disorders": 0.75,
+    "mh_infectious_diseases": 0.75,
+    "mh_allergies": 1.0,
+    "mh_diabetes": 0.75,
+    "mh_joint_conditions": 0.5,
+    # Expectations / ICE
+    "ice_ideas": 0.75,
+    "ice_concerns": 0.5,
+    "ice_expectations": 1.0,
+    # Social history
+    "soc_smoking_vaping": 1.0,
+    "soc_alcohol": 1.0,
+    "soc_recreational_drugs": 0.5,
+    "soc_who_lives_with": 0.5,
+    "soc_feel_safe": 0.5,
+    "soc_support": 0.25,
+    # Dietary habits
+    "diet_hot_drinks_type": 1.0,
+    "diet_hot_drinks_frequency": 1.0,
+    "diet_hot_drinks_milk_sugar": 1.0,
+    "diet_cold_drinks_type": 1.0,
+    "diet_cold_drinks_frequency": 1.0,
+    "diet_cold_drinks_sugar": 1.0,
+    "diet_snacks_between_meals": 1.0,
+    "diet_snacks_type": 0.5,
+    "diet_snacks_frequency": 0.5,
+    "diet_sweets_intake": 1.0,
+    "diet_sweets_type": 0.5,
+    # Preventive regime
+    "prev_brushing_frequency": 1.0,
+    "prev_brush_type": 0.75,
+    "prev_brushing_times": 0.75,
+    "prev_interprox_aids": 0.75,
+    "prev_mouthwash_use": 0.5,
+    "prev_mouthwash_type": 0.25,
+    "prev_toothpaste_type": 0.5,
+}
+
+# Fixed partial marks (like Sight Test Tutor)
+PHASE1_PARTIAL_MARKS = {k: round(v * 0.6, 2) for k, v in PHASE1_CRITERIA_MAX.items()}
+
+PHASE1_ESSENTIAL = {
+    "hpc_reason_for_attendance",
+    "hpc_identification_of_symptoms",
+    "hpc_site",
+    "hpc_character",
+    "mh_medications",
+    "mh_allergies",
+    "ice_expectations",
+    "soc_smoking_vaping",
+    "soc_alcohol",
+    "diet_hot_drinks_type",
+    "diet_cold_drinks_type",
+    "diet_snacks_between_meals",
+    "prev_brushing_frequency",
+    "prev_toothpaste_type",
+}
+
+PHASE1_HELP = {
+    "hpc_reason_for_attendance": ("HPC: reason for attendance", "State why the patient attended today."),
+    "hpc_identification_of_symptoms": ("HPC: symptoms", "State the main symptom(s) in the patient’s words."),
+    "hpc_site": ("HPC: site", "State where the symptoms are (tooth/quadrant/generalised)."),
+    "hpc_character": ("HPC: character", "Describe the symptom quality (sharp/dull/lingering etc.)."),
+    "mh_medications": ("Medical history: medications", "List medications or write “none”."),
+    "mh_allergies": ("Medical history: allergies", "List allergies or write “NKDA”."),
+    "ice_expectations": ("Expectations", "State what outcome the patient wants today."),
+    "soc_smoking_vaping": ("Social: smoking/vaping", "Record smoking/vaping status (or ‘never’)."),
+    "soc_alcohol": ("Social: alcohol", "Record alcohol intake (or ‘does not drink’)."),
+    "diet_hot_drinks_type": ("Diet: hot drinks", "Type(s) of hot drinks (tea/coffee etc.)."),
+    "diet_cold_drinks_type": ("Diet: cold drinks", "Type(s) of cold drinks (incl. fizzy/juice)."),
+    "diet_snacks_between_meals": ("Diet: snacks", "Whether they snack between meals (yes/no)."),
+    "prev_brushing_frequency": ("Prevention: brushing", "Brushing frequency (e.g. 2×/day)."),
+    "prev_toothpaste_type": ("Prevention: toothpaste", "Toothpaste type (fluoride/whitening etc.)."),
+}
+
+
+def _sum_max(criteria_max: dict) -> float:
+    return float(sum(float(v) for v in criteria_max.values()))
+
+
+PHASE1_MAX_TOTAL = _sum_max(PHASE1_CRITERIA_MAX)
+
+PHASE1_GROUPS = {
+    "hpc": [
+        "hpc_reason_for_attendance",
+        "hpc_identification_of_symptoms",
+        "hpc_site",
+        "hpc_onset",
+        "hpc_character",
+        "hpc_progression",
+        "hpc_radiation",
+        "hpc_associated_symptoms",
+        "hpc_timing_patterns",
+        "hpc_exacerbating_relieving",
+        "hpc_severity",
+    ],
+    "mh_ice": [
+        "mh_cardiovascular",
+        "mh_respiratory",
+        "mh_other_systemic",
+        "mh_gastrointestinal_reflux",
+        "mh_genitourinary",
+        "mh_medications",
+        "mh_recent_hospitalisations",
+        "mh_bleeding_disorders",
+        "mh_infectious_diseases",
+        "mh_allergies",
+        "mh_diabetes",
+        "mh_joint_conditions",
+        "ice_ideas",
+        "ice_concerns",
+        "ice_expectations",
+    ],
+    "soc_diet_prev": [
+        "soc_smoking_vaping",
+        "soc_alcohol",
+        "soc_recreational_drugs",
+        "soc_who_lives_with",
+        "soc_feel_safe",
+        "soc_support",
+        "diet_hot_drinks_type",
+        "diet_hot_drinks_frequency",
+        "diet_hot_drinks_milk_sugar",
+        "diet_cold_drinks_type",
+        "diet_cold_drinks_frequency",
+        "diet_cold_drinks_sugar",
+        "diet_snacks_between_meals",
+        "diet_snacks_type",
+        "diet_snacks_frequency",
+        "diet_sweets_intake",
+        "diet_sweets_type",
+        "prev_brushing_frequency",
+        "prev_brush_type",
+        "prev_brushing_times",
+        "prev_interprox_aids",
+        "prev_mouthwash_use",
+        "prev_mouthwash_type",
+        "prev_toothpaste_type",
+    ],
+}
+
+TEMPLATE_MARKERS = [
+    "should be reported",
+    "radiolucencies:",
+    "radiopacities:",
+    "horizontal bone levels",
+    "location",
+    "extension",
+    "quality should",
+]
+
+FINDING_MARKERS = [
+    "quality a",
+    "quality u",
+    "acceptable",
+    "unacceptable",
+    "enamel",
+    "dentine",
+    "d1",
+    "d2",
+    "pulp",
+    "p",
+    "normal",
+    "moderate",
+    "significant",
+    "calculus",
+    "radiolucency",
+    "radiopacity",
+]
+
+
+def looks_like_radiograph_template(text: str) -> bool:
+    t = (text or "").lower()
+    if len(t.strip()) < 40:
+        return False
+    template_hits = sum(1 for k in TEMPLATE_MARKERS if k in t)
+    finding_hits = sum(1 for k in FINDING_MARKERS if k in t)
+    return template_hits >= 4 and finding_hits <= 1
+
+
+def _has_any_radiograph_findings(text: str) -> bool:
+    t = (text or "").lower()
+    anchor_quality = any(x in t for x in ["quality a", "quality u", "acceptable", "unacceptable"])
+    anchor_depth = any(x in t for x in [" d1", " d2", " enamel", " dentine", " pulp", " e ", " p "])
+    anchor_bone = ("bone" in t and any(x in t for x in ["normal", "moderate", "significant", "%"]))
+    anchor_calc = ("calculus" in t and any(x in t for x in ["present", "visible", "seen", "absent", "none"]))
+    anchor_tooth_lesion = (re.search(r"\b(ur|ul|lr|ll)\s?\d\b", t) and ("radioluc" in t or "radiopac" in t))
+    return bool(anchor_quality or anchor_depth or anchor_bone or anchor_calc or anchor_tooth_lesion)
+
+
+PHASE2A_ORDER = [
+    ("quality", ["quality", "acceptable", "unacceptable", " a", " u"]),
+    ("radiolucencies", ["radioluc", "radiolucency", "radiolucencies", "d1", "d2", "enamel", "dentine", "pulp", "icdas", " e ", " p "]),
+    ("radiopacities", ["radiopac", "radiopacity", "radiopacities"]),
+    ("bone levels", ["bone", "bone level", "horizontal bone", "normal", "moderate", "significant", "%"]),
+    ("calculus", ["calculus"]),
+    ("justification", ["justify", "justification", "because", "reason", "indication", "should be requested"]),
+]
+
+
+def _phase2a_rank_gap(item: dict) -> tuple[int, int]:
+    hay = " ".join([str(item.get("comment") or ""), str(item.get("expected") or "")]).lower()
+    for idx, (_label, markers) in enumerate(PHASE2A_ORDER):
+        if any(m in hay for m in markers):
+            return (idx, 0)
+    return (999, 0)
+
+
+def quick_phase2a_strengths(radiograph_report: str) -> list[dict]:
+    rr = (radiograph_report or "").strip()
+    t = rr.lower()
+    out = []
+
+    def _quote_snip(text: str, needles: list[str], window: int = 70) -> str:
+        tl = (text or "").lower()
+        for needle in needles:
+            i = tl.find(needle)
+            if i != -1:
+                start = max(0, i - 20)
+                end = min(len(text), i + window)
+                return text[start:end].strip()[:120]
+        return ""
+
+    if "quality" in t and any(x in t for x in [" a", " u", "acceptable", "unacceptable"]):
+        out.append(
+            {
+                "comment": "You reported radiograph quality clearly.",
+                "evidence": _quote_snip(rr, ["quality", "acceptable", "unacceptable"]),
+            }
+        )
+    if "radioluc" in t:
+        out.append(
+            {
+                "comment": "You described radiolucencies using radiographic language.",
+                "evidence": _quote_snip(rr, ["radioluc", "d1", "d2", "enamel", "dentine"]),
+            }
+        )
+    if "bone" in t and "level" in t and any(x in t for x in ["normal", "moderate", "significant"]):
+        out.append(
+            {
+                "comment": "You described alveolar bone levels clearly.",
+                "evidence": _quote_snip(rr, ["bone", "level", "normal", "moderate", "significant"]),
+            }
+        )
+    return out[:3]
+
+
+def _tidy_phase2a_feedback(output: dict, fields: dict) -> dict:
+    rr = (fields.get("radiograph_report") or "").strip()
+    inv = (fields.get("investigation_notes") or "").strip()
+    strengths = list(output.get("strengths") or [])
+    gaps = list(output.get("gaps") or [])
+
+    # Strengths: keep short
+    if not strengths:
+        strengths = quick_phase2a_strengths(rr)
+    strengths = strengths[:3]
+
+    # Split gaps into must-fix vs optional
+    must_fix = []
+    optional = []
+    for g in gaps:
+        comment = (g.get("comment") or "").lower()
+        expected = (g.get("expected") or "").lower()
+        if any(x in comment for x in ["did not interpret", "no findings", "template", "not interpreted"]) or any(
+            x in expected for x in ["write what you observed", "add observed findings", "interpretation"]
+        ):
+            must_fix.append(g)
+        else:
+            optional.append(g)
+
+    if rr:
+        if looks_like_radiograph_template(rr) or not _has_any_radiograph_findings(rr):
+            must_fix.insert(
+                0,
+                {
+                    "comment": "Radiograph report needs specific findings (not headings).",
+                    "expected": (
+                        "Report: quality A/U; radiolucencies with tooth + surface + depth (E/D1/D2/P); "
+                        "radiopacities with tooth + extent; bone levels (normal/moderate/significant); calculus present/absent."
+                    ),
+                    "evidence": "",
+                },
+            )
+
+    must_fix = sorted(must_fix, key=_phase2a_rank_gap)[:4]
+    optional = sorted(optional, key=_phase2a_rank_gap)
+
+    collapsed_optional = []
+    if optional:
+        collapsed_optional.append(
+            {
+                "comment": "Further areas to consider (optional): "
+                + " ".join(
+                    (g.get("comment") or "").strip().rstrip(".") + "."
+                    for g in optional[:4]
+                    if (g.get("comment") or "").strip()
+                ),
+                "expected": "",
+                "evidence": "",
+                "optional": True,
+            }
+        )
+
+    output["strengths"] = strengths
+    output["gaps"] = must_fix + collapsed_optional
+
+    if rr or inv:
+        if looks_like_radiograph_template(rr) or (rr and not _has_any_radiograph_findings(rr)):
+            output["summary"] = (
+                "You have started documenting investigations, but the radiograph report reads like a checklist. "
+                "Marks are awarded for written observations and interpretation."
+            )
+        else:
+            output["summary"] = (
+                "Marks are awarded only for written findings and interpretation. "
+                "Focus your radiograph report on quality, lesions, bone levels and calculus."
+            )
+    else:
+        output["summary"] = (
+            "You selected investigations but did not document any interpretation or findings. "
+            "Marks are awarded only for what is written in the radiograph report and investigation notes."
+        )
+
+    return output
+
+
+def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
+    diagnoses = (fields.get("diagnoses") or "").strip()
+    risk = (fields.get("risk_assessment") or "").strip()
+
+    strengths = output.get("strengths") or []
+    gaps = output.get("gaps") or []
+
+    def _has_tooth_numbers(text: str) -> bool:
+        return bool(re.search(r"\b(UR|UL|LR|LL)\s?\d\b", text, re.IGNORECASE))
+
+    def _has_icdas(text: str) -> bool:
+        return bool(re.search(r"\bICDAS\s*[0-6]\b|\bICDAS\b", text, re.IGNORECASE))
+
+    def _has_gingival_statement(text: str) -> bool:
+        t = text.lower()
+        return any(
+            x in t
+            for x in (
+                "gingiv",
+                "gingiva",
+                "gingival inflammation",
+                "gingival",
+                "bop",
+                "bleeding on probing",
+                "healthy gingiva",
+                "healthy gingivae",
+            )
+        )
+
+    def _has_gingival_negative(text: str) -> bool:
+        return bool(
+            re.search(
+                r"\bno\s+(?:gingival|gingivitis|gingival\s+inflammation)\b",
+                text,
+                re.IGNORECASE,
+            )
+        )
+
+    def _risk_linked(text: str) -> bool:
+        return bool(re.search(r"\b(due to|because|linked|likely)\b", text, re.IGNORECASE))
+
+    def _has_perio_stage(text: str) -> bool:
+        return bool(re.search(r"\bstage\s*(?:i{1,3}|iv|[1-4])\b", text, re.IGNORECASE))
+
+    def _has_perio_grade(text: str) -> bool:
+        return bool(re.search(r"\bGrade\s*[A-C]\b", text, re.IGNORECASE))
+
+    def _has_perio_extent(text: str) -> bool:
+        return bool(re.search(r"\b(localised|generalised)\b", text, re.IGNORECASE))
+
+    def _has_perio_activity(text: str) -> bool:
+        return bool(re.search(r"\b(active|inactive)\b", text, re.IGNORECASE))
+
+    def _has_perio_exacerbating(text: str) -> bool:
+        return bool(re.search(r"\b(smoking|diabetes|plaque|poor oral hygiene)\b", text, re.IGNORECASE))
+
+    def _has_tooth_wear(text: str) -> bool:
+        return "tooth wear" in text.lower()
+
+    def _has_wear_severity(text: str) -> bool:
+        return bool(re.search(r"\b(mild|moderate|severe)\b", text, re.IGNORECASE))
+
+    def _has_wear_distribution(text: str) -> bool:
+        return bool(re.search(r"\b(localised|generalised)\b", text, re.IGNORECASE))
+
+    def _has_wear_mode(text: str) -> bool:
+        return bool(re.search(r"\b(erosion|attrition|abrasion|combination)\b", text, re.IGNORECASE))
+
+    def _has_tmj(text: str) -> bool:
+        return bool(re.search(r"\bTMJ\b|\btemporomandibular\b", text, re.IGNORECASE))
+
+    def _has_tmj_negative(text: str) -> bool:
+        return bool(re.search(r"\bno\s+tmj\b|\bno\s+tmj\s+issues\b|\bno\s+tmj\s+problems\b", text, re.IGNORECASE))
+
+    if not strengths:
+        if _has_tooth_numbers(diagnoses):
+            strengths.append({"comment": "You gave tooth-specific diagnoses rather than general labels.", "evidence": ""})
+        if _has_icdas(diagnoses):
+            strengths.append({"comment": "You used ICDAS grading to describe caries severity.", "evidence": ""})
+        if _has_perio_stage(diagnoses) and _has_perio_grade(diagnoses):
+            strengths.append({"comment": "Your periodontal diagnosis included stage and grade.", "evidence": ""})
+        if _has_tmj_negative(diagnoses):
+            strengths.append({"comment": "You clearly stated negative findings for TMJ.", "evidence": ""})
+        if risk and _risk_linked(risk):
+            strengths.append({"comment": "Your risk assessment linked risk factors to disease activity.", "evidence": ""})
+    strengths = strengths[:3]
+
+    new_gaps = []
+    if not diagnoses:
+        new_gaps.append(
+            {
+                "comment": "Diagnosis is missing — list the main diagnoses first, then supporting details.",
+                "expected": "Document specific diagnoses with tooth numbers and severity where appropriate.",
+                "evidence": "",
+                "priority": True,
+            }
+        )
+    else:
+        if "caries" in diagnoses.lower():
+            if not _has_tooth_numbers(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Caries diagnosis needs tooth numbers.",
+                        "expected": "Specify the affected teeth.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_icdas(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Caries diagnosis needs ICDAS grading (0–6).",
+                        "expected": "Include ICDAS grade for each affected tooth.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+        if not (_has_gingival_statement(diagnoses) or _has_gingival_negative(diagnoses)):
+            new_gaps.append(
+                {
+                    "comment": "Gingival condition not addressed (include a negative if none).",
+                    "expected": "State gingival health status (e.g. gingivitis present/absent).",
+                    "evidence": "",
+                    "priority": True,
+                }
+            )
+        if "periodontitis" in diagnoses.lower():
+            if not _has_perio_stage(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Periodontal diagnosis needs staging (Stage I–IV).",
+                        "expected": "Include stage.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_perio_grade(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Periodontal diagnosis needs grading (Grade A–C).",
+                        "expected": "Include grade.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_perio_extent(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Periodontal extent (localised/generalised) was not specified.",
+                        "expected": "Include extent.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_perio_activity(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Periodontal activity (active/inactive) was not stated.",
+                        "expected": "Include activity.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_perio_exacerbating(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Exacerbating factors for periodontal disease were not recorded.",
+                        "expected": "Note relevant factors (e.g., smoking, diabetes, plaque).",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+        if _has_tooth_wear(diagnoses):
+            if not _has_wear_severity(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Tooth wear requires severity (mild/moderate/severe).",
+                        "expected": "State severity.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_wear_distribution(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Tooth wear requires distribution (localised/generalised).",
+                        "expected": "State distribution.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+            if not _has_wear_mode(diagnoses):
+                new_gaps.append(
+                    {
+                        "comment": "Tooth wear requires mode (erosion/attrition/abrasion/combination).",
+                        "expected": "State mode.",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
+        if not _has_tmj(diagnoses):
+            new_gaps.append(
+                {
+                    "comment": "TMJ assessment is missing (including a negative finding if absent).",
+                    "expected": "State presence/absence and diagnosis if present.",
+                    "evidence": "",
+                    "priority": True,
+                }
+            )
+
+    if not risk:
+        new_gaps.append(
+            {
+                "comment": "Risk assessment is missing or too generic.",
+                "expected": "List key risk factors and link them to likely disease activity/prognosis.",
+                "evidence": "",
+                "priority": True,
+            }
+        )
+    elif not _risk_linked(risk):
+        new_gaps.append(
+            {
+                "comment": "Risk assessment needs clearer links between risk factors and disease activity.",
+                "expected": "State why each risk factor increases (or reduces) disease activity.",
+                "evidence": "",
+                "priority": True,
+            }
+        )
+
+    new_gaps = new_gaps[:5]
+    if gaps and len(new_gaps) < 5:
+        for g in gaps:
+            if len(new_gaps) >= 5:
+                break
+            new_gaps.append(g)
+
+    gap_text = " ".join(g.get("comment", "") for g in new_gaps).lower()
+    optional = []
+    if "activity" not in gap_text:
+        optional.append("State whether periodontal disease appears active or inactive.")
+    if "exacerbating" not in gap_text:
+        optional.append("Record exacerbating factors (e.g. smoking, diabetes, plaque).")
+    optional.append("Note protective factors as well as risks.")
+    if optional:
+        new_gaps.append(
+            {
+                "comment": " ".join(optional),
+                "expected": "",
+                "evidence": "",
+                "optional": True,
+            }
+        )
+
+    output["strengths"] = strengths
+    output["gaps"] = new_gaps
+    if diagnoses or risk:
+        output["summary"] = (
+            "Several diagnoses were identified, but key details such as grading, extent, or activity are missing. "
+            "The risk assessment needs clearer links between risk factors and disease progression to support planning."
+        )
+    return output
+
+def _build_phase1_marking_prompt(payload: dict, keys_subset: list[str] | None = None) -> tuple[str, str]:
+    """
+    Returns (system_prompt, user_content) for strict JSON marking.
+    """
+    canonical_keys = keys_subset or list(PHASE1_CRITERIA_MAX.keys())
+    max_table = ", ".join(f"{k}={PHASE1_CRITERIA_MAX[k]}" for k in canonical_keys)
+    partial_table = ", ".join(f"{k}={PHASE1_PARTIAL_MARKS[k]}" for k in canonical_keys)
+
+    system_prompt = (
+        "You are marking Phase 1 (Information Gathering) strictly from the student's notes.\n"
+        "Return JSON only.\n"
+        "Return a single JSON object with NO wrapper key; the top-level keys MUST be exactly the canonical keys.\n\n"
+        "Rules:\n"
+        "- Award marks ONLY when the student wrote evidence for that criterion.\n"
+        "- Evidence MUST be an exact verbatim substring from the student's notes (not paraphrase).\n"
+        "- Do NOT infer or assume negatives.\n"
+        "- If unclear/vague, use status='partial'.\n"
+        "- If absent, status='missing'.\n\n"
+        "Consistency contract:\n"
+        f"- CRITERIA_MAX: {max_table}\n"
+        f"- PARTIAL_MARKS: {partial_table}\n"
+        "- You MUST set marks numerically as:\n"
+        "  status='accurate' -> mark = CRITERIA_MAX[key]\n"
+        "  status='partial'  -> mark = PARTIAL_MARKS[key]\n"
+        "  status in {'missing'} -> mark = 0\n"
+        "- Use ONLY the student's notes; do not rely on clinical common sense.\n"
+        "- Do not use selected_tests as evidence.\n"
+    )
+
+    user_content = (
+        "Student Phase 1 fields (ONLY source of truth):\n"
+        f"{json.dumps(payload, ensure_ascii=False, indent=2)}\n\n"
+        "Return JSON with ONLY these canonical keys:\n"
+        f"{canonical_keys}\n\n"
+        "Each value must be:\n"
+        '{ "mark": <number>, "evidence": "<verbatim substring or empty>", "status": '
+        '"accurate" | "partial" | "missing" }\n'
+    )
+
+    return system_prompt, user_content
+
+
+def _call_openai_json(system_prompt: str, user_content: str, max_tokens: int = 900) -> dict:
+    kwargs = {
+        "model": PREFERRED_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ],
+        "temperature": 0.0,
+        "response_format": {"type": "json_object"},
+        "max_completion_tokens": max_tokens,
+    }
+    try:
+        try:
+            resp = client.with_options(timeout=60).chat.completions.create(**kwargs)
+        except AttributeError:
+            resp = client.chat.completions.create(**kwargs, timeout=60)
+    except TypeError:
+        # Older SDKs may require max_tokens instead of max_completion_tokens.
+        kwargs.pop("max_completion_tokens", None)
+        kwargs["max_tokens"] = max_tokens
+        try:
+            resp = client.with_options(timeout=60).chat.completions.create(**kwargs)
+        except AttributeError:
+            resp = client.chat.completions.create(**kwargs, timeout=60)
+    msg = resp.choices[0].message
+    content = msg.content
+    if isinstance(content, list):
+        if content and hasattr(content[0], "text"):
+            raw = content[0].text or ""
+        elif content and isinstance(content[0], dict) and "text" in content[0]:
+            raw = content[0]["text"] or ""
+        else:
+            raw = ""
+    else:
+        raw = content or ""
+    return json.loads(raw) if raw else {}
+
+
+def _bucketize_marks(marks_norm: dict, order: list[str] | None = None) -> tuple[list, list, list]:
+    accurate, partial, missing = [], [], []
+    keys = list(marks_norm.keys())
+    if order:
+        idx = {k: i for i, k in enumerate(order)}
+        keys.sort(key=lambda k: (idx.get(k, 10_000), k))
+    else:
+        keys.sort()
+    for k in keys:
+        v = marks_norm.get(k) or {}
+        st = (v.get("status") or "").lower()
+        if st == "accurate":
+            accurate.append(k)
+        elif st == "partial":
+            partial.append(k)
+        else:
+            missing.append(k)
+    return accurate, partial, missing
+
+
+def _render_phase1_feedback_from_marks(marks_norm: dict) -> dict:
+    essential_order = [
+        "hpc_reason_for_attendance",
+        "hpc_identification_of_symptoms",
+        "hpc_site",
+        "hpc_character",
+        "mh_medications",
+        "mh_allergies",
+        "ice_expectations",
+        "soc_smoking_vaping",
+        "soc_alcohol",
+        "diet_hot_drinks_type",
+        "diet_cold_drinks_type",
+        "diet_snacks_between_meals",
+        "prev_brushing_frequency",
+        "prev_toothpaste_type",
+    ]
+    accurate, partial, missing = _bucketize_marks(marks_norm, order=essential_order)
+
+    strengths = []
+    gaps = []
+
+    section_names = {
+        "hpc": "History of presenting complaint",
+        "mh": "Medical history",
+        "ice": "Expectations (ICE)",
+        "soc": "Social history",
+        "diet": "Diet",
+        "prev": "Preventive regime",
+    }
+
+    section_strengths = {
+        "hpc": [
+            "You recorded the main complaint and at least one trigger.",
+            "You described the nature of the pain/sensitivity.",
+        ],
+        "mh": [
+            "You documented relevant medical history items.",
+        ],
+        "ice": [
+            "You recorded what the patient is hoping for today.",
+        ],
+        "soc": [
+            "You documented smoking status.",
+        ],
+        "diet": [
+            "You recorded at least one dietary exposure.",
+        ],
+        "prev": [
+            "You recorded brushing behaviour.",
+        ],
+    }
+
+    section_fix = {
+        "hpc": [
+            "Record where the symptoms are (single tooth / quadrant / generalised).",
+            "Record onset and progression (when it started, whether worsening).",
+            "Add severity (e.g., 5/10) and what makes it better/worse.",
+        ],
+        "mh": [
+            "Document medications (or 'no medications').",
+            "Document allergies (or 'no known allergies').",
+            "Record key systems explicitly (cardiac, respiratory, bleeding risk, diabetes).",
+        ],
+        "ice": [
+            "Document the patient’s concerns (e.g., worries about fillings / root canal).",
+            "Document patient ideas/beliefs where relevant.",
+        ],
+        "soc": [
+            "Record alcohol intake (or 'does not drink').",
+            "Record recreational drug use (or 'none').",
+        ],
+        "diet": [
+            "Record hot drinks: type + frequency + sugar/milk.",
+            "Record cold drinks: type + frequency + sugar exposure.",
+            "Record snacking between meals (type + frequency).",
+            "Record sweets intake (even sugar-free).",
+        ],
+        "prev": [
+            "Record brushing frequency and time of day.",
+            "Record brush type (manual / electric).",
+            "Record interdental cleaning.",
+            "Record toothpaste type (fluoride / whitening/abrasive etc.).",
+        ],
+    }
+
+    section_optional = {
+        "hpc": [
+            "Consider associated symptoms and whether pain radiates.",
+        ],
+        "mh": [
+            "If a condition is present, note whether it is stable/well-controlled.",
+        ],
+        "ice": [
+            "Add what the patient expects from the longer-term plan.",
+        ],
+        "soc": [
+            "Consider living situation / safety / support network where relevant.",
+        ],
+        "diet": [
+            "If high-risk exposure is present, note timing/frequency (grazing vs meals).",
+        ],
+        "prev": [
+            "Record mouthwash use and type.",
+        ],
+    }
+
+    def _section_key(k: str) -> str:
+        return k.split("_", 1)[0]
+
+    missing_essential = [k for k in missing if k in PHASE1_ESSENTIAL]
+    missing_other = [k for k in missing if k not in PHASE1_ESSENTIAL]
+
+    def _has_any(keys: list[str], prefix: str) -> bool:
+        return any(k.startswith(prefix + "_") for k in keys)
+
+    MAX_PRIORITY = 3
+    MAX_REFINE = 3
+
+    # Strengths (short, supportive)
+    if any(k.startswith("hpc_") for k in (accurate + partial)):
+        strengths.append({"comment": "You recorded relevant details of the presenting complaint.", "evidence": ""})
+    if any(k.startswith("mh_") for k in (accurate + partial)):
+        strengths.append({"comment": "You recorded relevant points from the medical history.", "evidence": ""})
+    if any(k.startswith("diet_") for k in (accurate + partial)):
+        strengths.append({"comment": "You documented dietary factors relevant to caries risk.", "evidence": ""})
+    strengths = strengths[:3]
+
+    # Priority gaps: missing essentials only (max 3) in stable order.
+    missing_essential_sorted = [k for k in essential_order if k in missing_essential]
+    for k in missing_essential_sorted[:MAX_PRIORITY]:
+        label, expected = PHASE1_HELP.get(k, (k.replace("_", " "), "Document this explicitly in your notes."))
+        gaps.append(
+            {
+                "comment": f"Fix before moving on: {label}.",
+                "expected": expected,
+                "evidence": "",
+                "priority": True,
+            }
+        )
+
+    # Refinements: partials (max 3), essentials first.
+    partial_keys = [k for k, v in marks_norm.items() if v.get("status") == "partial"]
+    partial_priority = [k for k in partial_keys if k in PHASE1_ESSENTIAL]
+    partial_other = [k for k in partial_keys if k not in PHASE1_ESSENTIAL]
+    partial_sorted = partial_priority + partial_other
+    for k in partial_sorted[:MAX_REFINE]:
+        label, _ = PHASE1_HELP.get(k, (k.replace("_", " "), ""))
+        gaps.append(
+            {
+                "comment": f"Refine: {label} is mentioned but incomplete.",
+                "expected": "Add one more specific detail so this is chairside-complete.",
+                "evidence": "",
+                "refine": True,
+            }
+        )
+
+    # Optional: single short line.
+    missing_other = [
+        k for k, v in marks_norm.items()
+        if v.get("status") == "missing" and k not in PHASE1_ESSENTIAL
+    ]
+    if missing_other:
+        optional_prompts = []
+        if any(k.startswith("hpc_") for k in missing_other):
+            optional_prompts.append("HPC: consider onset/progression/severity and relieving factors if relevant.")
+        if any(k.startswith("mh_") for k in missing_other):
+            optional_prompts.append("Medical history: consider key systems (e.g., bleeding risk/diabetes) if relevant.")
+        if any(k.startswith("soc_") for k in missing_other):
+            optional_prompts.append("Social: consider support/safety where clinically relevant.")
+        if any(k.startswith("diet_") for k in missing_other):
+            optional_prompts.append("Diet: consider frequency/timing of sugar exposures (grazing vs meals).")
+        if any(k.startswith("prev_") for k in missing_other):
+            optional_prompts.append("Prevention: consider interdental cleaning/mouthwash if relevant.")
+        gaps.append(
+            {
+                "comment": "Optional improvements: " + " ".join(optional_prompts[:3]),
+                "expected": "",
+                "evidence": "",
+                "optional": True,
+            }
+        )
+
+    summary = (
+        "Address the priority items above before moving on to investigations."
+        if missing_essential_sorted
+        else "Core Phase 1 information is present. You can move on, and refine later if needed."
+    )
+
+    return {
+        "strengths": strengths,
+        "gaps": gaps,
+        "unsafe_or_concerning": [],
+        "summary": summary,
+    }
+
+
+def _compute_score_0_to_10(total_marks: float, max_total: float) -> float:
+    if max_total <= 0:
+        return 0.0
+    return round(10.0 * float(total_marks) / float(max_total), 1)
+
+
 def generate_feedback_for_session_phase(session, phase: int, scope: str | None = None) -> tuple[dict, dict]:
     """
     Generate phase-only feedback and score.
@@ -279,13 +1194,16 @@ def generate_feedback_for_session_phase(session, phase: int, scope: str | None =
                     "strengths": [],
                     "gaps": [
                         {
-                            "comment": "Tests were selected, but no interpretation or findings were written.",
-                            "expected": "Write a radiograph report and/or investigation notes, plus diagnoses and a risk assessment.",
+                            "comment": "Tests were selected, but no findings were documented.",
+                            "expected": "Selecting a test is not assessed — interpretation is. Write a radiograph report and/or investigation notes.",
                             "evidence": "",
                         }
                     ],
                     "unsafe_or_concerning": [],
-                    "summary": "Tests were selected but nothing was documented.",
+                    "summary": (
+                        "You selected investigations but did not document any interpretation or findings. "
+                        "Marks are awarded only for what is written in the radiograph report and investigation notes."
+                    ),
                 },
                 {"score": 1},
             )
@@ -327,6 +1245,171 @@ def generate_feedback_for_session_phase(session, phase: int, scope: str | None =
         return val
 
     payload = {k: s(v) for k, v in fields.items()}
+
+    def _all_student_text(payload_dict: dict) -> str:
+        parts = []
+        for k, v in payload_dict.items():
+            if k == "selected_tests":
+                continue
+            if isinstance(v, str) and v.strip():
+                parts.append(v.strip())
+        return "\n".join(parts)
+
+    def _norm_text(val: str) -> str:
+        normalized = (val or "").lower()
+        normalized = normalized.replace("“", '"').replace("”", '"').replace("’", "'")
+        normalized = normalized.replace("•", "-")
+        normalized = normalized.replace("–", "-").replace("—", "-")
+        normalized = re.sub(r"\s+", " ", normalized).strip()
+        return normalized
+
+    def _evidence_present(evidence: str, student_text: str) -> bool:
+        if not evidence:
+            return False
+        return _norm_text(evidence) in _norm_text(student_text)
+
+    # --- NEW: strict criterion-level marking for Phase 1 ---
+    if phase == 1 and os.getenv("ORAL_STRICT_PHASE1", "1") == "1":
+        if not client:
+            return (
+                {
+                    "strengths": [],
+                    "gaps": [
+                        {
+                            "comment": "AI feedback unavailable (missing API key).",
+                            "expected": "",
+                            "evidence": "",
+                        }
+                    ],
+                    "unsafe_or_concerning": [],
+                    "summary": "AI feedback unavailable.",
+                },
+                {"score": 0},
+            )
+        student_text = _all_student_text(payload)
+
+        parsed_marks = {}
+        last_err = None
+        for group_name, keys_subset in PHASE1_GROUPS.items():
+            system_prompt, user_content = _build_phase1_marking_prompt(payload, keys_subset)
+            for max_tokens in (1400, 900):
+                try:
+                    part = _call_openai_json(system_prompt, user_content, max_tokens=max_tokens)
+                    if isinstance(part, dict):
+                        for wrapper in ("marks", "results", "criteria", "data"):
+                            if wrapper in part and isinstance(part[wrapper], dict):
+                                part = part[wrapper]
+                                break
+                        if isinstance(part, dict):
+                            parsed_marks.update(part)
+                    break
+                except Exception as exc:
+                    last_err = exc
+                    continue
+
+        if not parsed_marks:
+            logger.exception(
+                "Strict Phase 1 marking failed; falling back to narrative scorer.",
+                exc_info=last_err,
+            )
+            if os.getenv("ORAL_STRICT_PHASE1_RAISE", "0") == "1":
+                raise
+
+        logger.info("STRICT PHASE1 keys: %s", list(parsed_marks.keys())[:10])
+
+        # Validate + clamp + enforce evidence-in-student-notes
+        marks_norm = {}
+        earned = 0.0
+        for key, maxv in PHASE1_CRITERIA_MAX.items():
+            entry = parsed_marks.get(key) if isinstance(parsed_marks, dict) else None
+            entry = entry if isinstance(entry, dict) else {}
+            status = (entry.get("status") or "").strip().lower()
+            ev = (entry.get("evidence") or "").strip()
+
+            # Enforce verbatim evidence
+            if ev and not _evidence_present(ev, student_text):
+                status = "missing"
+                ev = ""
+
+            if status == "accurate":
+                m = float(maxv)
+            elif status == "partial":
+                m = float(PHASE1_PARTIAL_MARKS.get(key, 0.0))
+                m = min(m, float(maxv))
+            else:
+                status = "missing"
+                m = 0.0
+                ev = ""
+
+            marks_norm[key] = {"mark": m, "evidence": ev[:240], "status": status}
+            earned += m
+
+        # Build deterministic feedback lists from marks
+        output = _render_phase1_feedback_from_marks(marks_norm)
+
+        # Compute 0–10 score locally
+        score_float = _compute_score_0_to_10(earned, PHASE1_MAX_TOTAL)
+        score_val = int(round(score_float))
+
+        # Keep your existing "missing required sections => cap 4" rule
+        missing_sections = [k for k, v in fields.items() if isinstance(v, str) and not v.strip()]
+        if missing_sections:
+            score_val = min(score_val, 4)
+
+        missing_essential_count = sum(
+            1 for k in PHASE1_ESSENTIAL if marks_norm.get(k, {}).get("status") == "missing"
+        )
+        missing_total_count = sum(
+            1 for v in marks_norm.values() if v.get("status") == "missing"
+        )
+        partial_count = sum(
+            1 for v in marks_norm.values() if v.get("status") == "partial"
+        )
+        core_sections_empty_count = 0
+        for k in (
+            "hpc_notes",
+            "medical_history_notes",
+            "expectations_notes",
+            "social_history_notes",
+            "diet_notes",
+            "preventive_regime_notes",
+        ):
+            val = fields.get(k)
+            if not (isinstance(val, str) and len(val.strip()) >= 5):
+                core_sections_empty_count += 1
+        score_val = max(0, min(10, score_val))
+        return output, {
+            "score": score_val,
+            "score_raw": score_float,
+            "missing_essential_count": missing_essential_count,
+            "missing_total_count": missing_total_count,
+            "partial_count": partial_count,
+            "core_sections_empty_count": core_sections_empty_count,
+        }
+    if phase == 2 and scope == "investigations":
+        rr = (fields.get("radiograph_report") or "").strip()
+        if rr and looks_like_radiograph_template(rr) and not _has_any_radiograph_findings(rr):
+            return (
+                {
+                    "strengths": [],
+                    "gaps": [
+                        {
+                            "comment": "You have written a radiograph reporting template rather than radiographic findings.",
+                            "expected": (
+                                "Write what you observed (e.g., quality A/U; radiolucencies with tooth + surface + depth; "
+                                "bone levels normal/moderate/significant; calculus present/absent)."
+                            ),
+                            "evidence": "",
+                        }
+                    ],
+                    "unsafe_or_concerning": [],
+                    "summary": (
+                        "A checklist of headings is not interpreted evidence. "
+                        "Marks are awarded only for documented observations."
+                    ),
+                },
+                {"score": 1},
+            )
     phase1_rules = ""
     phase2_rules = ""
     summary_focus = ""
@@ -351,26 +1434,46 @@ PHASE 1 MARKING RULES (STRICT):
 """
     if phase == 2 and scope == "investigations":
         phase2_rules = """
-PHASE 2A MARKING RULES (INVESTIGATIONS):
-- Test selection alone does NOT demonstrate competence.
-- Interpretation of findings is required for credit.
-- If tests are selected but not interpreted:
+PHASE 2A MARKING RULES (INVESTIGATIONS & RADIOGRAPH REPORT):
+- Selecting investigations alone does NOT demonstrate competence.
+- Credit is awarded only for documented findings and interpretation.
+- Listing headings or prompts (e.g. “radiolucencies: location”) without findings
+  counts as a reporting template and earns no interpretation credit.
+- Generic test justification (e.g. “BPE should always be requested”) is acceptable and should not be penalised.
+  Marks in this phase mainly come from reporting/interpretation of findings.
+- If investigations are selected but no findings are documented:
   • The maximum score MUST NOT exceed 3/10.
-- Evidence must come from radiograph reports or investigation notes.
-- If "radiograph_report" contains text, you MUST include at least one Strength or Gap about it.
-- Use a direct quote from radiograph_report as evidence where possible.
-- If you cannot comment on the radiograph report, explain why in the summary.
+- Evidence must come ONLY from:
+  • radiograph_report
+  • investigation_notes
+  (selected_tests must NOT be used as evidence).
+- If radiograph_report contains text:
+  • You MUST comment on it (as a strength or a gap).
+  • Use a direct quote from the student’s text as evidence where possible.
+- If the radiograph report cannot be interpreted,
+  this MUST be explained clearly in the summary.
 """
         summary_focus = "Summary must focus on interpretation quality."
     elif phase == 2 and scope == "diagnosis":
         phase2_rules = """
 PHASE 2B MARKING RULES (DIAGNOSIS & RISK):
-- A diagnosis MUST be supported by findings from Phase 1 and investigations.
-- Unsupported diagnoses MUST be marked as a gap.
-- If no risk assessment is provided:
-  • The maximum score MUST NOT exceed 4/10.
-- Listing diagnoses without justification is insufficient.
-- If "risk_assessment" contains text, you MUST include at least one Strength or Gap about it.
+- Grade ONLY what the student explicitly wrote.
+- Do NOT infer diagnoses from earlier phases or investigations.
+- If something is not written, treat it as not assessed or not reported.
+- Each diagnosis stream must be addressed explicitly:
+  • Caries (teeth + ICDAS grade)
+  • Gingival conditions
+  • Periodontal disease (stage, grade, extent, activity, exacerbating factors)
+  • Tooth wear (severity, distribution, mode)
+  • Temporomandibular joint
+- Vague or incomplete diagnoses must be marked as partial or missing.
+- Negative findings (e.g. “no TMJ issues”) are valid and should be credited.
+- Evidence must be a direct verbatim quote from the student’s text.
+- Risk assessment must:
+  • Identify relevant risk factors
+  • Link them to disease activity or prognosis
+- If risk assessment is missing or generic:
+  • Maximum score MUST NOT exceed 4/10.
 """
         summary_focus = "Summary must focus on diagnostic reasoning and risk assessment."
 
@@ -496,28 +1599,6 @@ Return ONLY JSON in this schema:
         "summary": fb.get("summary") if isinstance(fb.get("summary"), str) else "",
     }
 
-    def _all_student_text(payload_dict: dict) -> str:
-        parts = []
-        for k, v in payload_dict.items():
-            if k == "selected_tests":
-                continue
-            if isinstance(v, str) and v.strip():
-                parts.append(v.strip())
-        return "\n".join(parts)
-
-    def _norm_text(val: str) -> str:
-        normalized = (val or "").lower()
-        normalized = normalized.replace("“", '"').replace("”", '"').replace("’", "'")
-        normalized = normalized.replace("•", "-")
-        normalized = normalized.replace("–", "-").replace("—", "-")
-        normalized = re.sub(r"\s+", " ", normalized).strip()
-        return normalized
-
-    def _evidence_present(evidence: str, student_text: str) -> bool:
-        if not evidence:
-            return False
-        return _norm_text(evidence) in _norm_text(student_text)
-
     def _ensure_item_dict(item, keys):
         if isinstance(item, dict):
             return {k: item.get(k, "") for k in keys}
@@ -560,6 +1641,10 @@ Return ONLY JSON in this schema:
             it["evidence"] = evidence
             unsafe_clean.append(it)
     output["unsafe_or_concerning"] = unsafe_clean
+    if phase == 2 and scope == "investigations":
+        output = _tidy_phase2a_feedback(output, fields)
+    if phase == 2 and scope == "diagnosis":
+        output = _tidy_phase2b_feedback(output, fields)
 
     try:
         score_val = int(round(float(score)))

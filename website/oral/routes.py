@@ -7,7 +7,12 @@ from flask import Blueprint, redirect, render_template, request, url_for, jsonif
 from openai import OpenAI
 from sqlalchemy.orm.attributes import flag_modified
 
-from .ai_feedback import generate_feedback_for_session, generate_feedback_for_session_phase
+from .ai_feedback import (
+    generate_feedback_for_session,
+    generate_feedback_for_session_phase,
+    looks_like_radiograph_template,
+    _has_any_radiograph_findings,
+)
 from .case_loader import load_case
 from .patient_chat import patient_chat_reply
 from .db import SessionLocal
@@ -246,6 +251,59 @@ def phase2(session_id: int):
                 return jsonify({"ok": True})
             if action == "save":
                 return redirect(url_for("oral.phase2", session_id=session_id))
+            # --- Phase 2 "warn but allow override" gate -------------------------
+            proceed_anyway = request.form.get("phase2_proceed_anyway") == "1"
+
+            selected = sess.selected_tests or []
+            rr = (sess.radiograph_report or "").strip()
+            inv = (sess.investigation_notes or "").strip()
+
+            # Warn scenarios (Phase 2A incomplete)
+            no_interpretation = bool(selected) and not (rr or inv)
+
+            # Warn scenario (radiograph looks like template headings)
+            template_rad = bool(rr) and looks_like_radiograph_template(rr) and not _has_any_radiograph_findings(rr)
+
+            should_warn = (action == "continue") and (no_interpretation or template_rad) and not proceed_anyway
+
+            if should_warn:
+                # Rebuild test results (same as GET) so the page renders correctly
+                case_payload = None
+                test_options, test_results = [], []
+                if case:
+                    try:
+                        case_payload = load_case(case.case_code)
+                        test_options, test_results = build_test_results(
+                            case_payload,
+                            sess.selected_tests,
+                            audience="student",
+                        )
+                    except FileNotFoundError:
+                        case_payload = None
+
+                msg = (
+                    "You selected investigations but haven’t documented any interpretation yet. "
+                    "Marks in this phase come from your written findings in the radiograph report and/or "
+                    "investigation notes."
+                    if no_interpretation else
+                    "Your radiograph text looks like a reporting template rather than observed findings. "
+                    "Write what you actually saw (quality A/U, tooth + surface + depth/extent, bone levels, calculus)."
+                )
+
+                return render_template(
+                    "oral/phase2.html",
+                    session_id=session_id,
+                    session=sess,
+                    case=case,
+                    case_payload=case_payload,
+                    test_options=test_options,
+                    test_results=test_results,
+                    chat_log=sess.chat_log or [],
+                    current_phase=2,
+                    phase2_continue_warning=True,
+                    phase2_continue_warning_msg=msg,
+                )
+            # --- end gate -------------------------------------------------------
             return redirect(url_for("oral.phase3", session_id=session_id))
         chat_log = sess.chat_log or []
         return render_template(
