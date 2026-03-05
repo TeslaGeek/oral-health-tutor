@@ -239,6 +239,7 @@ def phase2(session_id: int):
             if "selected_tests" in request.form:
                 if not getattr(sess, "phase2_investigations_locked", False):
                     sess.selected_tests = request.form.getlist("selected_tests")
+            set_if_present("test_justification", "test_justification")
             set_if_present("radiograph_report", "radiograph_report")
             set_if_present("investigation_notes", "investigation_notes")
             set_if_present("diagnoses", "diagnoses")
@@ -368,7 +369,7 @@ def phase3(session_id: int):
                 return redirect(url_for("oral.completed", session_id=session_id))
 
             try:
-                feedback, scores, overall = generate_feedback_for_session(sess)
+                feedback, scores, overall = generate_feedback_for_session(sess, case_payload=case_payload)
                 sess.feedback_json = feedback
                 sess.section_scores_json = scores
                 if overall is not None:
@@ -427,6 +428,13 @@ def generate_feedback(session_id: int):
         sess = db.query(Session).get(session_id)
         if not sess:
             return jsonify({"ok": False, "error": "Session not found"}), 404
+        case = db.query(Case).get(sess.case_id) if sess else None
+        case_payload = None
+        if case:
+            try:
+                case_payload = load_case(case.case_code)
+            except FileNotFoundError:
+                case_payload = None
 
         if os.getenv("DISABLE_AI_FEEDBACK") == "1":
             return jsonify({"ok": False, "error": "AI feedback disabled"}), 503
@@ -438,7 +446,7 @@ def generate_feedback(session_id: int):
 
         # Generate synchronously
         try:
-            feedback, scores, overall = generate_feedback_for_session(sess)
+            feedback, scores, overall = generate_feedback_for_session(sess, case_payload=case_payload)
             sess.feedback_json = feedback
             sess.section_scores_json = scores
             if overall is not None:
@@ -467,6 +475,13 @@ def phase_feedback(session_id: int, phase: int):
         sess = db.query(Session).get(session_id)
         if not sess:
             return jsonify({"ok": False, "error": "Session not found"}), 404
+        case = db.query(Case).get(sess.case_id) if sess else None
+        case_payload = None
+        if case:
+            try:
+                case_payload = load_case(case.case_code)
+            except FileNotFoundError:
+                case_payload = None
 
         if os.getenv("DISABLE_AI_FEEDBACK") == "1":
             return jsonify({"ok": False, "error": "AI feedback disabled"}), 503
@@ -524,6 +539,7 @@ def phase_feedback(session_id: int, phase: int):
                     "diet_notes": _text_len(sess.diet_notes),
                     "preventive_regime_notes": _text_len(sess.preventive_regime_notes),
                     "radiograph_report": _text_len(sess.radiograph_report),
+                    "test_justification": _text_len(sess.test_justification),
                     "investigation_notes": _text_len(sess.investigation_notes),
                     "diagnoses": _text_len(sess.diagnoses),
                     "risk_assessment": _text_len(sess.risk_assessment),
@@ -563,7 +579,12 @@ def phase_feedback(session_id: int, phase: int):
                     )
                     return jsonify({"ok": True, "feedback_html": html, "cached": True}), 200
 
-            phase_feedback_data, phase_scores = generate_feedback_for_session_phase(sess, phase, scope=scope_key)
+            phase_feedback_data, phase_scores = generate_feedback_for_session_phase(
+                sess,
+                phase,
+                scope=scope_key,
+                case_payload=case_payload,
+            )
             is_empty = (
                 not phase_feedback_data.get("summary")
                 and not (phase_feedback_data.get("strengths") or [])

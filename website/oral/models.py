@@ -48,6 +48,7 @@ class Session(Base):
 
     # Phase 2
     selected_tests = Column(MutableList.as_mutable(JSON), default=list)
+    test_justification = Column(Text)
     radiograph_report = Column(Text)
     investigation_notes = Column(Text)
     diagnoses = Column(Text)

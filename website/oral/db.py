@@ -3,7 +3,7 @@ import os
 import certifi
 import ssl
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import sessionmaker
 
@@ -38,3 +38,19 @@ if ssl_required or True:  # DO requires TLS; enforce with CA bundle.
 
 engine = create_engine(url, echo=False, pool_pre_ping=True, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine)
+
+
+def ensure_session_schema():
+    """Lightweight compatibility migration for additive columns."""
+    try:
+        inspector = inspect(engine)
+        columns = {col.get("name") for col in inspector.get_columns("oral_sessions")}
+        with engine.begin() as conn:
+            if "test_justification" not in columns:
+                conn.execute(text("ALTER TABLE oral_sessions ADD COLUMN test_justification TEXT NULL"))
+    except Exception:
+        # Keep startup resilient if DB metadata cannot be inspected at import time.
+        pass
+
+
+ensure_session_schema()

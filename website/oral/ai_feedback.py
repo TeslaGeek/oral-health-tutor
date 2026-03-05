@@ -43,7 +43,7 @@ IMPORTANT RULES (do not break these):
 - If you cannot quote it, you must NOT praise it.
 - Evidence quotes must be verbatim substrings from the free-text fields only:
   hpc_notes, medical_history_notes, expectations_notes, social_history_notes,
-  diet_notes, preventive_regime_notes, radiograph_report, investigation_notes,
+  diet_notes, preventive_regime_notes, test_justification, radiograph_report, investigation_notes,
   diagnoses, risk_assessment, prevention_plan, rehab_options, operative_options,
   patient_preferences, final_plan_and_consent_notes.
 - Do NOT use selected_tests or any clinician truth as evidence.
@@ -72,6 +72,9 @@ Preventive regime:
 PHASE 2 – INVESTIGATIONS / DIAGNOSIS / RISK
 Selected tests:
 {session_data.get('selected_tests', [])}
+
+Test justification:
+{s(session_data.get('test_justification', ''))}
 
 Radiograph report:
 {s(session_data.get('radiograph_report', ''))}
@@ -171,6 +174,9 @@ Preventive regime:
 PHASE 2 – INVESTIGATIONS / DIAGNOSIS / RISK
 Selected tests:
 {session_data.get('selected_tests', [])}
+
+Test justification:
+{s(session_data.get('test_justification', ''))}
 
 Radiograph report:
 {s(session_data.get('radiograph_report', ''))}
@@ -487,6 +493,7 @@ def quick_phase2a_strengths(radiograph_report: str) -> list[dict]:
 
 
 def _tidy_phase2a_feedback(output: dict, fields: dict) -> dict:
+    tj = (fields.get("test_justification") or "").strip()
     rr = (fields.get("radiograph_report") or "").strip()
     inv = (fields.get("investigation_notes") or "").strip()
     strengths = list(output.get("strengths") or [])
@@ -523,6 +530,15 @@ def _tidy_phase2a_feedback(output: dict, fields: dict) -> dict:
                     "evidence": "",
                 },
             )
+    if fields.get("selected_tests") and not tj:
+        must_fix.insert(
+            0,
+            {
+                "comment": "Justification for selected tests is missing.",
+                "expected": "Briefly explain why each selected investigation was chosen.",
+                "evidence": "",
+            },
+        )
 
     must_fix = sorted(must_fix, key=_phase2a_rank_gap)[:4]
     optional = sorted(optional, key=_phase2a_rank_gap)
@@ -554,7 +570,7 @@ def _tidy_phase2a_feedback(output: dict, fields: dict) -> dict:
             )
         else:
             output["summary"] = (
-                "Marks are awarded only for written findings and interpretation. "
+                "Marks are awarded for justified test selection plus written findings and interpretation. "
                 "Focus your radiograph report on quality, lesions, bone levels and calculus."
             )
     else:
@@ -632,7 +648,22 @@ def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
         return bool(re.search(r"\b(localised|generalised)\b", text, re.IGNORECASE))
 
     def _has_wear_mode(text: str) -> bool:
-        return bool(re.search(r"\b(erosion|attrition|abrasion|combination)\b", text, re.IGNORECASE))
+        return bool(re.search(r"\b(erosion|erosive|attrition|abrasion|combination)\b", text, re.IGNORECASE))
+
+    def _has_no_periodontal_disease(text: str) -> bool:
+        return bool(
+            re.search(
+                r"\b(no\s+(?:periodontitis|periodontal\s+disease)|periodontal\s+disease\s+absent)\b",
+                text,
+                re.IGNORECASE,
+            )
+        )
+
+    def _mentions_periodontal_disease(text: str) -> bool:
+        return bool(re.search(r"\b(periodontitis|periodontal\s+disease)\b", text, re.IGNORECASE))
+
+    def _extract_icdas_grades(text: str) -> list[int]:
+        return [int(m.group(1)) for m in re.finditer(r"\bicdas\s*([0-6])\b", text, re.IGNORECASE)]
 
     def _has_tmj(text: str) -> bool:
         return bool(re.search(r"\bTMJ\b|\btemporomandibular\b", text, re.IGNORECASE))
@@ -647,6 +678,8 @@ def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
             strengths.append({"comment": "You used ICDAS grading to describe caries severity.", "evidence": ""})
         if _has_perio_stage(diagnoses) and _has_perio_grade(diagnoses):
             strengths.append({"comment": "Your periodontal diagnosis included stage and grade.", "evidence": ""})
+        if _has_no_periodontal_disease(diagnoses):
+            strengths.append({"comment": "You explicitly documented that periodontal disease was absent.", "evidence": ""})
         if _has_tmj_negative(diagnoses):
             strengths.append({"comment": "You clearly stated negative findings for TMJ.", "evidence": ""})
         if risk and _risk_linked(risk):
@@ -683,6 +716,21 @@ def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
                         "priority": True,
                     }
                 )
+            expected_icdas_grade = fields.get("expected_icdas_grade")
+            provided_icdas = _extract_icdas_grades(diagnoses)
+            if (
+                isinstance(expected_icdas_grade, int)
+                and provided_icdas
+                and expected_icdas_grade not in provided_icdas
+            ):
+                new_gaps.append(
+                    {
+                        "comment": "ICDAS grade does not match expected severity for this lesion.",
+                        "expected": f"ICDAS {expected_icdas_grade}",
+                        "evidence": "",
+                        "priority": True,
+                    }
+                )
         if not (_has_gingival_statement(diagnoses) or _has_gingival_negative(diagnoses)):
             new_gaps.append(
                 {
@@ -692,7 +740,9 @@ def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
                     "priority": True,
                 }
             )
-        if "periodontitis" in diagnoses.lower():
+        has_periodontal_disease = _mentions_periodontal_disease(diagnoses)
+        has_no_periodontal_disease = _has_no_periodontal_disease(diagnoses)
+        if has_periodontal_disease and not has_no_periodontal_disease:
             if not _has_perio_stage(diagnoses):
                 new_gaps.append(
                     {
@@ -738,6 +788,15 @@ def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
                         "priority": True,
                     }
                 )
+        elif not has_no_periodontal_disease:
+            new_gaps.append(
+                {
+                    "comment": "State explicitly if periodontal disease is absent.",
+                    "expected": "Record either no periodontal disease, or provide full periodontitis staging/grading details.",
+                    "evidence": "",
+                    "priority": True,
+                }
+            )
         if _has_tooth_wear(diagnoses):
             if not _has_wear_severity(diagnoses):
                 new_gaps.append(
@@ -804,10 +863,11 @@ def _tidy_phase2b_feedback(output: dict, fields: dict) -> dict:
 
     gap_text = " ".join(g.get("comment", "") for g in new_gaps).lower()
     optional = []
-    if "activity" not in gap_text:
-        optional.append("State whether periodontal disease appears active or inactive.")
-    if "exacerbating" not in gap_text:
-        optional.append("Record exacerbating factors (e.g. smoking, diabetes, plaque).")
+    if _mentions_periodontal_disease(diagnoses) and not _has_no_periodontal_disease(diagnoses):
+        if "activity" not in gap_text:
+            optional.append("State whether periodontal disease appears active or inactive.")
+        if "exacerbating" not in gap_text:
+            optional.append("Record exacerbating factors (e.g. smoking, diabetes, plaque).")
     optional.append("Note protective factors as well as risks.")
     if optional:
         new_gaps.append(
@@ -1131,7 +1191,12 @@ def _compute_score_0_to_10(total_marks: float, max_total: float) -> float:
     return round(10.0 * float(total_marks) / float(max_total), 1)
 
 
-def generate_feedback_for_session_phase(session, phase: int, scope: str | None = None) -> tuple[dict, dict]:
+def generate_feedback_for_session_phase(
+    session,
+    phase: int,
+    scope: str | None = None,
+    case_payload: dict | None = None,
+) -> tuple[dict, dict]:
     """
     Generate phase-only feedback and score.
 
@@ -1153,6 +1218,7 @@ def generate_feedback_for_session_phase(session, phase: int, scope: str | None =
         if scope == "investigations":
             fields = {
                 "selected_tests": session.selected_tests or [],
+                "test_justification": session.test_justification,
                 "radiograph_report": session.radiograph_report,
                 "investigation_notes": session.investigation_notes,
             }
@@ -1162,10 +1228,21 @@ def generate_feedback_for_session_phase(session, phase: int, scope: str | None =
                 "diagnoses": session.diagnoses,
                 "risk_assessment": session.risk_assessment,
             }
+            if isinstance(case_payload, dict):
+                truth = case_payload.get("diagnosis_truth")
+                if isinstance(truth, list):
+                    for item in truth:
+                        if not isinstance(item, str):
+                            continue
+                        m = re.search(r"\bICDAS\s*([0-6])\b", item, re.IGNORECASE)
+                        if m:
+                            fields["expected_icdas_grade"] = int(m.group(1))
+                            break
             phase_name = "PHASE 2B – DIAGNOSIS & RISK ASSESSMENT"
         else:
             fields = {
                 "selected_tests": session.selected_tests or [],
+                "test_justification": session.test_justification,
                 "radiograph_report": session.radiograph_report,
                 "investigation_notes": session.investigation_notes,
                 "diagnoses": session.diagnoses,
@@ -1436,7 +1513,9 @@ PHASE 1 MARKING RULES (STRICT):
         phase2_rules = """
 PHASE 2A MARKING RULES (INVESTIGATIONS & RADIOGRAPH REPORT):
 - Selecting investigations alone does NOT demonstrate competence.
-- Credit is awarded only for documented findings and interpretation.
+- Credit is awarded for both:
+  • clear justification for selected tests
+  • documented findings and interpretation
 - Listing headings or prompts (e.g. “radiolucencies: location”) without findings
   counts as a reporting template and earns no interpretation credit.
 - Generic test justification (e.g. “BPE should always be requested”) is acceptable and should not be penalised.
@@ -1444,6 +1523,7 @@ PHASE 2A MARKING RULES (INVESTIGATIONS & RADIOGRAPH REPORT):
 - If investigations are selected but no findings are documented:
   • The maximum score MUST NOT exceed 3/10.
 - Evidence must come ONLY from:
+  • test_justification
   • radiograph_report
   • investigation_notes
   (selected_tests must NOT be used as evidence).
@@ -1463,7 +1543,9 @@ PHASE 2B MARKING RULES (DIAGNOSIS & RISK):
 - Each diagnosis stream must be addressed explicitly:
   • Caries (teeth + ICDAS grade)
   • Gingival conditions
-  • Periodontal disease (stage, grade, extent, activity, exacerbating factors)
+  • Periodontal status:
+    - if periodontitis present: include stage, grade, extent, activity, exacerbating factors
+    - if absent: explicitly state no periodontal disease / no periodontitis
   • Tooth wear (severity, distribution, mode)
   • Temporomandibular joint
 - Vague or incomplete diagnoses must be marked as partial or missing.
@@ -1676,7 +1758,7 @@ Return ONLY JSON in this schema:
     return output, {"score": score_val}
 
 
-def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
+def generate_feedback_for_session(session, case_payload: dict | None = None) -> tuple[dict, dict, float]:
     """
     Call GPT-5 to generate feedback for a given Session object.
 
@@ -1695,6 +1777,7 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
         "diet_notes": session.diet_notes,
         "preventive_regime_notes": session.preventive_regime_notes,
         "selected_tests": session.selected_tests or [],
+        "test_justification": session.test_justification,
         "radiograph_report": session.radiograph_report,
         "investigation_notes": session.investigation_notes,
         "diagnoses": session.diagnoses,
@@ -2002,6 +2085,36 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
     if "overall_summary" not in feedback or not isinstance(feedback.get("overall_summary"), str):
         feedback["overall_summary"] = ""
 
+    # Charlotte calibration: treat incorrect ICDAS grade as a diagnostic gap (not unsafe).
+    if isinstance(case_payload, dict):
+        expected_icdas_grade = None
+        truth = case_payload.get("diagnosis_truth")
+        if isinstance(truth, list):
+            for item in truth:
+                if not isinstance(item, str):
+                    continue
+                m = re.search(r"\bICDAS\s*([0-6])\b", item, re.IGNORECASE)
+                if m:
+                    expected_icdas_grade = int(m.group(1))
+                    break
+        diagnoses_text = (data.get("diagnoses") or "")
+        provided_icdas = [
+            int(m.group(1))
+            for m in re.finditer(r"\bicdas\s*([0-6])\b", diagnoses_text, re.IGNORECASE)
+        ]
+        if (
+            isinstance(expected_icdas_grade, int)
+            and provided_icdas
+            and expected_icdas_grade not in provided_icdas
+        ):
+            feedback["investigations_and_diagnosis"]["gaps"].append(
+                {
+                    "comment": "ICDAS grade does not match expected severity for this lesion.",
+                    "expected": f"ICDAS {expected_icdas_grade}",
+                    "evidence": "",
+                }
+            )
+
     # Override sections that were left blank to avoid optimistic feedback
     def override_section(key: str, text: str, score_val: int):
         feedback[key] = {
@@ -2094,18 +2207,40 @@ def generate_feedback_for_session(session) -> tuple[dict, dict, float]:
         for key in ("history_and_information", "investigations_and_diagnosis", "planning_and_consent")
         if isinstance(feedback.get(key), dict)
     )
-    if total_strengths == 0:
-        feedback["overall_summary"] = (
-            "Feedback is limited because there were few or no evidenced strengths in the written submission. "
-            "Complete the missing fields and add explicit interpretations to receive more detailed feedback."
+
+    def _score_text(val) -> str:
+        try:
+            return f"{float(val):.1f}/10"
+        except Exception:
+            return "0.0/10"
+
+    h_score = scores.get("history_and_information", 0)
+    i_score = scores.get("investigations_and_diagnosis", 0)
+    p_score = scores.get("planning_and_consent", 0)
+
+    score_line = (
+        f"Section scores: History {_score_text(h_score)}, "
+        f"Investigations & diagnosis {_score_text(i_score)}, "
+        f"Planning {_score_text(p_score)}."
+    )
+
+    if float(overall or 0.0) >= 7.0:
+        tone_line = (
+            "Overall this is a solid submission; keep refining precision and linkage between findings, diagnosis, and planning."
+        )
+    elif float(overall or 0.0) >= 4.0:
+        tone_line = (
+            "Overall this is a developing submission with clear progress, but key details remain incomplete."
+        )
+    else:
+        tone_line = (
+            "Overall this submission is incomplete and needs fuller documentation across sections."
         )
 
-    overall_summary = feedback.get("overall_summary")
-    if not isinstance(overall_summary, str) or not overall_summary.strip():
-        feedback["overall_summary"] = (
-            "Feedback is limited because some sections were left blank. "
-            "Complete the missing fields and regenerate feedback."
-        )
+    if total_strengths == 0:
+        tone_line += " Few evidenced strengths were detected in the written text."
+
+    feedback["overall_summary"] = f"{score_line} {tone_line}"
     overall = round(float(overall or 0.0), 2)
     scores["overall"] = overall
 
