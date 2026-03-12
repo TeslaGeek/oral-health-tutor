@@ -1,18 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
 
+{% set scores = session.section_scores_json if session.section_scores_json else {} %}
+{% set history_score = scores.get("history_and_information") %}
+{% set investigations_score = scores.get("investigations_and_diagnosis") %}
+{% set planning_score = scores.get("planning_and_consent") %}
+{% set section_total = (
+  (history_score if history_score is number else 0) +
+  (investigations_score if investigations_score is number else 0) +
+  (planning_score if planning_score is number else 0)
+) %}
+
 <h1 class="mb-3 sticky-heading">
   <a href="{{ url_for('oral.welcome') }}" class="sticky-logo">IES</a>
   <span>Case submitted</span>
   <a href="{{ url_for('oral.welcome') }}" class="sticky-home-btn">Home</a>
 </h1>
 
-{% if session.overall_score %}
+{% if session.overall_score is not none %}
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     const badge = document.getElementById("navbar-score-badge");
     if (badge) {
-      badge.textContent = "Score: {{ session.overall_score | int }}/30";
+      badge.textContent = "Score: {{ '%.1f'|format(session.overall_score|float) }}/10";
       badge.style.display = "inline-block";
     }
   });
@@ -25,8 +35,9 @@
   Session ID: <strong>{{ session.id }}</strong><br>
   Case ID: <strong>{{ session.case_id }}</strong><br>
   Status: <strong>{{ session.status.value if session.status else "unknown" }}</strong><br>
-  {% if session.overall_score %}
-    Overall score: <strong>{{ session.overall_score | int }}/30</strong>
+{% if session.overall_score is not none %}
+    Overall score: <strong>{{ "%.1f"|format(session.overall_score|float) }}/10</strong><br>
+    Section total: <strong>{{ "%.1f"|format(section_total|float) }}/30</strong>
   {% endif %}
 </p>
 

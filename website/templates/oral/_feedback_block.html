@@ -83,8 +83,25 @@
 {% endmacro %}
 
 {% if session.feedback_json %}
+  {% set scores = session.section_scores_json if session.section_scores_json else {} %}
+  {% set history_score = scores.get("history_and_information") %}
+  {% set investigations_score = scores.get("investigations_and_diagnosis") %}
+  {% set planning_score = scores.get("planning_and_consent") %}
+  {% set section_total = (
+    (history_score if history_score is number else 0) +
+    (investigations_score if investigations_score is number else 0) +
+    (planning_score if planning_score is number else 0)
+  ) %}
   <hr class="my-4">
   <h2 class="h4 mb-3">Supervisor Feedback</h2>
+
+  {% if session.overall_score is not none %}
+    <p class="text-muted mb-3">
+      Overall score: <strong>{{ "%.1f"|format(session.overall_score|float) }}/10</strong>
+      (mean of the three section scores). Section total:
+      <strong>{{ "%.1f"|format(section_total|float) }}/30</strong>.
+    </p>
+  {% endif %}
 
   {{ render_section("History & information", "history_and_information") }}
   {{ render_section("Investigations & diagnosis", "investigations_and_diagnosis") }}

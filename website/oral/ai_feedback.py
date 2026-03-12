@@ -2217,11 +2217,14 @@ def generate_feedback_for_session(session, case_payload: dict | None = None) -> 
     h_score = scores.get("history_and_information", 0)
     i_score = scores.get("investigations_and_diagnosis", 0)
     p_score = scores.get("planning_and_consent", 0)
+    section_total = float(h_score or 0) + float(i_score or 0) + float(p_score or 0)
 
     score_line = (
         f"Section scores: History {_score_text(h_score)}, "
         f"Investigations & diagnosis {_score_text(i_score)}, "
-        f"Planning {_score_text(p_score)}."
+        f"Planning {_score_text(p_score)}. "
+        f"Section total: {section_total:.1f}/30. "
+        f"Overall mean: {float(overall or 0.0):.1f}/10."
     )
 
     if float(overall or 0.0) >= 7.0:
