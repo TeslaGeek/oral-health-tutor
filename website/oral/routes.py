@@ -70,6 +70,11 @@ def welcome():
     return render_template("oral/welcome.html")
 
 
+@oral_bp.route("/privacy")
+def privacy():
+    return render_template("oral/privacy.html")
+
+
 @oral_bp.route("/cases")
 def list_cases():
     db = SessionLocal()
