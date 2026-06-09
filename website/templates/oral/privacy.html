@@ -8,30 +8,9 @@
       <div class="card-body p-4 p-md-5">
         <h1 class="h3 mb-4" style="font-family: 'Poppins', sans-serif;">Privacy policy</h1>
 
-        <p>
-          Oral Health Tutor is hosted on a secure web platform in the London region.
-        </p>
-        <p>
-          We do not intentionally collect direct personal identifiers such as names, email addresses, or passwords through this prototype website.
-        </p>
-        <p>
-          However, our hosting platform processes limited technical log data when you use the site, including IP address, date and time of access, requested URLs, referrer information, and browser/device information.
-        </p>
-        <p>
-          We use this information only to operate, secure, monitor, and troubleshoot the service.
-        </p>
-        <p>
-          Our lawful basis for this processing is legitimate interests.
-        </p>
-        <p>
-          Access to logs is restricted to authorised personnel and retained only for as long as necessary for operational and security purposes.
-        </p>
-        <p>
-          The online service provider host acts as a processor for personal data under its Data Processing Agreement.
-        </p>
-        <p class="mb-4">
-          If you have questions about privacy, contact: info [at] iesltd [dot] uk.
-        </p>
+        <div class="mb-4">
+          {% include "oral/_privacy_statement.html" %}
+        </div>
 
         <a href="{{ url_for('oral.welcome') }}" class="btn btn-outline-primary">Back to welcome</a>
       </div>
