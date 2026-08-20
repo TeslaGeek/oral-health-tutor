@@ -1,5 +1,6 @@
 import os
 import hashlib
+import hmac
 import json
 from datetime import datetime
 
@@ -65,6 +66,30 @@ def _iter_tts_audio_bytes(text: str, *, model: str, voice: str, instructions: st
             yield chunk
 
 
+def _admin_auth_response():
+    username = os.getenv("ORAL_ADMIN_USERNAME")
+    password = os.getenv("ORAL_ADMIN_PASSWORD")
+
+    # Keep the endpoint unavailable unless production credentials are configured.
+    if not username or not password:
+        return Response("Not found", status=404, headers={"Cache-Control": "no-store"})
+
+    auth = request.authorization
+    username_matches = bool(auth) and hmac.compare_digest(auth.username or "", username)
+    password_matches = bool(auth) and hmac.compare_digest(auth.password or "", password)
+    if username_matches and password_matches:
+        return None
+
+    return Response(
+        "Authentication required",
+        status=401,
+        headers={
+            "WWW-Authenticate": 'Basic realm="Oral Health Tutor Admin", charset="UTF-8"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 @oral_bp.route("/")
 def welcome():
     return render_template("oral/welcome.html")
@@ -93,6 +118,10 @@ def list_cases():
 
 @oral_bp.route("/admin/sessions")
 def admin_sessions():
+    auth_response = _admin_auth_response()
+    if auth_response is not None:
+        return auth_response
+
     db = SessionLocal()
     try:
         sessions = (
@@ -110,11 +139,14 @@ def admin_sessions():
                 case_payloads[case.id] = None
     finally:
         db.close()
-    return render_template(
-        "oral/admin_sessions.html",
-        sessions=sessions,
-        cases=cases,
-        case_payloads=case_payloads,
+    return Response(
+        render_template(
+            "oral/admin_sessions.html",
+            sessions=sessions,
+            cases=cases,
+            case_payloads=case_payloads,
+        ),
+        headers={"Cache-Control": "no-store"},
     )
 
 
